@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BlurFrame · 设计稿</title>
+  <style>
+    /* ========================================================
+       1. CSS Variables (light + dark via [data-theme])
+       ======================================================== */
+    :root, [data-theme="light"] {
+      --bg: #ffffff;
+      --bg-2: #f6f7f9;
+      --panel: #ffffff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --accent: #4f8cff;
+      --danger: #ef4444;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.3);
+    }
+    [data-theme="dark"] {
+      --bg: #15171a;
+      --bg-2: #1c1f24;
+      --panel: #1c1f24;
+      --border: #2a2e34;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    /* ========================================================
+       2. Base
+       ======================================================== */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #eef0f3;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+      transition: background 0.2s;
+    }
+    [data-theme="dark"] body { background: #0d0f12; }
+    h1, h2, h3, p { margin: 0; }
+
+    /* ========================================================
+       3. Page header
+       ======================================================== */
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #d0d4dc;
+      margin-bottom: 32px;
+    }
+    [data-theme="dark"] .page-header { border-color: #2a2e34; }
+    .page-title h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .page-title p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .theme-toggle {
+      display: inline-flex;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px;
+      box-shadow: var(--shadow-sm);
+    }
+    .theme-toggle button {
+      border: none;
+      background: transparent;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .theme-toggle button.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* ========================================================
+       4. Card grid
+       ======================================================== */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px 28px;
+    }
+    @media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 700px)  { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card__caption {
+      margin-top: 20px;
+      text-align: center;
+      max-width: 390px;
+    }
+    .card__num {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(79,140,255,0.12);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+    .card__title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .card__desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ========================================================
+       5. Device frame (reusable)
+       ======================================================== */
+    .device {
+      width: 390px;
+      height: 844px;
+      background: #0a0a0a;
+      border-radius: 54px;
+      padding: 12px;
+      position: relative;
+      box-shadow: var(--shadow-lg);
+    }
+    .device__notch {
+      position: absolute;
+      top: 14px; left: 50%;
+      transform: translateX(-50%);
+      width: 110px; height: 30px;
+      background: #000;
+      border-radius: 0 0 18px 18px;
+      z-index: 10;
+    }
+    .device__home {
+      position: absolute;
+      bottom: 18px; left: 50%;
+      transform: translateX(-50%);
+      width: 134px; height: 5px;
+      background: var(--text);
+      border-radius: 3px;
+      opacity: 0.5;
+      z-index: 10;
+    }
+    .device__screen {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      border-radius: 42px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      color: var(--text);
+    }
+
+    /* ========================================================
+       6. Status bar (inside screen, top)
+       ======================================================== */
+    .status-bar {
+      height: 50px;
+      padding: 16px 28px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .status-bar svg { height: 12px; opacity: 0.85; }
+
+    /* ========================================================
+       7. App-level components
+       ======================================================== */
+    .app-bar {
+      height: 52px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .app-bar__back, .app-bar__action {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+      font-size: 22px;
+      cursor: pointer;
+    }
+    .app-bar__title { flex: 1; text-align: center; }
+    .app-bar__right { color: var(--accent); font-size: 14px; font-weight: 600; }
+
+    /* Search bar */
+    .search-bar {
+      margin: 8px 16px 4px;
+      height: 38px;
+      background: var(--bg-2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .search-bar svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* Tab bar (bottom) */
+    .tab-bar {
+      height: 60px;
+      display: flex;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+    .tab-bar__item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .tab-bar__item--active { color: var(--accent); }
+    .tab-bar__item svg { width: 24px; height: 24px; }
+
+    /* Floating action button */
+    .fab {
+      position: absolute;
+      bottom: 80px; right: 18px;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(79,140,255,0.5);
+      z-index: 5;
+      font-size: 28px;
+    }
+
+    /* Action bar (bottom of selection mode) */
+    .action-bar {
+      height: 64px;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      flex-shrink: 0;
+    }
+    .action-bar__item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .action-bar__item--danger { color: var(--danger); }
+    .action-bar__item svg { width: 22px; height: 22px; }
+    .action-bar__divider { width: 1px; height: 28px; background: var(--border); }
+
+    /* Photo grid */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      padding: 2px;
+      flex: 1;
+      overflow: hidden;
+    }
+    .photo-cell {
+      aspect-ratio: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .photo-cell__check {
+      position: absolute;
+      top: 6px; right: 6px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.4);
+      border: 2px solid white;
+      z-index: 2;
+    }
+    .photo-cell--selected .photo-cell__check {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .photo-cell--selected::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(79,140,255,0.3);
+      z-index: 1;
+    }
+    .photo-cell--selected .photo-cell__check::after {
+      content: '✓';
+      color: white;
+      position: absolute;
+      inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+    }
+
+    /* Photo placeholder gradients */
+    .ph { width: 100%; height: 100%; }
+    .ph-1  { background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%); }
+    .ph-2  { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+    .ph-3  { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+    .ph-4  { background: linear-gradient(135deg, #fccb90 0%, #d57eeb 100%); }
+    .ph-5  { background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); }
+    .ph-6  { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .ph-7  { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .ph-8  { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .ph-9  { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    .ph-10 { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+    .ph-11 { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+    .ph-12 { background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); }
+
+    /* ========================================================
+       8. Screen-specific styles
+       ======================================================== */
+
+    /* Screen 1: Empty state */
+    .empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+    }
+    .empty__icon {
+      width: 120px; height: 120px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(79,140,255,0.15), rgba(79,140,255,0.05));
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+      font-size: 48px;
+      margin-bottom: 24px;
+    }
+    .empty__title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .empty__desc { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 260px; margin-bottom: 32px; }
+    .btn-primary {
+      height: 48px;
+      padding: 0 28px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(79,140,255,0.4);
+    }
+
+    /* Screen 4: Swipe to delete */
+    .swipe-demo {
+      flex: 1;
+      position: relative;
+      background: var(--bg-2);
+      overflow: hidden;
+    }
+    .swipe-demo__grid {
+      position: absolute; inset: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      padding: 2px;
+    }
+    .swipe-demo__grid > div { aspect-ratio: 1; }
+    .swipe-demo__delete {
+      position: absolute;
+      inset: 0;
+      background: var(--danger);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .swipe-demo__card {
+      position: absolute;
+      top: 0; left: 0;
+      width: calc((100% - 4px) / 3);
+      aspect-ratio: 1;
+      transform: translateY(-110%) rotate(-4deg) scale(0.96);
+      transform-origin: top center;
+      z-index: 2;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+    }
+    .swipe-demo__toast {
+      position: absolute;
+      bottom: 100px; left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 5;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .swipe-demo__toast span { color: #fbbf24; }
+    .swipe-demo__arrow {
+      position: absolute;
+      top: 50%; right: 20px;
+      transform: translateY(-50%);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(0,0,0,0.6);
+      padding: 6px 10px;
+      border-radius: 6px;
+      z-index: 3;
+    }
+    .swipe-demo__hint {
+      position: absolute;
+      top: 12px; right: 12px;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(0,0,0,0.6);
+      padding: 4px 8px;
+      border-radius: 4px;
+      z-index: 4;
+    }
+
+    /* Screen 5: Albums list */
+    .album-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    .album-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 16px;
+    }
+    .album-cover {
+      width: 76px; height: 76px;
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 1px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .album-cover > div { width: 100%; height: 100%; }
+    .album-meta { flex: 1; min-width: 0; }
+    .album-name { font-size: 15px; font-weight: 600; }
+    .album-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .album-chev { color: var(--muted); font-size: 18px; }
+
+    /* Screen 6: Album detail */
+    .album-hero {
+      height: 220px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .album-hero__bg { position: absolute; inset: 0; filter: blur(20px) brightness(0.7); transform: scale(1.2); }
+    .album-hero__fg { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 60%; height: 70%; border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+    .album-hero__info {
+      position: absolute;
+      bottom: 12px; left: 16px; right: 16px;
+      color: white;
+    }
+    .album-hero__title { font-size: 22px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+    .album-hero__sub { font-size: 12px; opacity: 0.9; margin-top: 2px; }
+    .album-photos {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      padding: 2px;
+      overflow: hidden;
+    }
+
+    /* Screen 7: Search */
+    .search-screen { flex: 1; overflow-y: auto; padding-bottom: 12px; }
+    .filter-group { padding: 12px 16px; }
+    .filter-group__title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 6px 12px;
+      background: var(--bg-2);
+      border-radius: 999px;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .chip--active { background: var(--accent); color: white; }
+    .color-dots { display: flex; gap: 10px; }
+    .color-dot { width: 28px; height: 28px; border-radius: 50%; position: relative; }
+    .color-dot--active::after { content: '✓'; position: absolute; inset: 0; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; }
+    .stars { display: flex; gap: 4px; color: var(--muted); font-size: 18px; }
+    .stars .on { color: #fbbf24; }
+    .result-strip { padding: 8px 16px 0; }
+    .result-strip__count { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .result-strip__row { display: flex; gap: 4px; overflow: hidden; }
+    .result-strip__row > div { width: 64px; height: 64px; border-radius: 6px; flex-shrink: 0; }
+
+    /* Screen 8: Photo detail */
+    .photo-detail {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .photo-detail__img { width: 100%; height: 280px; flex-shrink: 0; position: relative; }
+    .photo-detail__exif {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .exif-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .exif-row__label { color: var(--muted); }
+    .exif-row__value { font-weight: 500; }
+    .tag-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
+    .tag-pill {
+      padding: 4px 10px;
+      background: var(--bg-2);
+      border-radius: 999px;
+      font-size: 12px;
+    }
+    .photo-detail__actions { display: flex; gap: 8px; margin-top: 8px; }
+    .btn-secondary {
+      flex: 1;
+      height: 44px;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* Screen 9: Editor (uses CSS blur, no canvas) */
+    .editor {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: hidden;
+    }
+    .editor-frame {
+      width: 100%;
+      aspect-ratio: 3/2;
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .editor-frame__bg {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+      filter: blur(20px) saturate(1.2);
+      transform: scale(1.15);
+    }
+    .editor-frame__inner {
+      position: absolute;
+      inset: 13% 13%;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+      border-radius: 4px;
+    }
+    .editor-template-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .editor-template-row::-webkit-scrollbar { display: none; }
+    .template-chip {
+      flex-shrink: 0;
+      width: 70px;
+      height: 70px;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .template-chip--active { box-shadow: 0 0 0 3px var(--accent); }
+    .template-chip__bg { position: absolute; inset: 0; filter: blur(6px); transform: scale(1.1); }
+    .template-chip__inner { position: absolute; inset: 20%; border-radius: 2px; }
+    .template-chip__name { position: absolute; bottom: -16px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--muted); }
+    .editor-slider { display: flex; flex-direction: column; gap: 4px; }
+    .editor-slider__head { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+    .editor-slider__head strong { color: var(--text); font-weight: 600; }
+    .slider-track {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      position: relative;
+    }
+    .slider-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 50%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    .slider-thumb {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 22px; height: 22px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(79,140,255,0.2);
+    }
+    .editor-toggle {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 13px;
+      padding: 8px 0;
+    }
+    .switch {
+      width: 40px; height: 24px;
+      background: var(--border);
+      border-radius: 999px;
+      position: relative;
+    }
+    .switch--on { background: var(--accent); }
+    .switch::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 20px; height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.15s;
+    }
+    .switch--on::after { transform: translateX(16px); }
+
+    /* Screen 10: Template management */
+    .tpl-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 12px 16px;
+      overflow: hidden;
+      align-content: start;
+    }
+    .tpl-card {
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--bg-2);
+    }
+    .tpl-card__preview {
+      aspect-ratio: 4/3;
+      position: relative;
+      overflow: hidden;
+    }
+    .tpl-card__preview .editor-frame { box-shadow: none; aspect-ratio: auto; position: absolute; inset: 0; border-radius: 0; }
+    .tpl-card__body { padding: 8px 10px 10px; }
+    .tpl-card__name { font-size: 13px; font-weight: 600; }
+    .tpl-card__sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* Screen 11: Template editor */
+    .tpl-edit { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+    .tpl-edit__preview { padding: 12px 16px; }
+    .tpl-section {
+      margin: 0 16px 8px;
+      background: var(--bg-2);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .tpl-section__head {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 14px; font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .tpl-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; }
+    .tpl-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      width: 140px;
+      color: var(--text);
+    }
+    .tpl-save {
+      position: absolute;
+      bottom: 18px; left: 16px; right: 16px;
+      height: 48px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(79,140,255,0.4);
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <div class="page-title">
+        <h1>BlurFrame · 设计稿</h1>
+        <p>v2 · 完整照片管理 App · 共 11 个核心屏幕 · 浅/深色双主题</p>
+      </div>
+      <div class="theme-toggle">
+        <button data-theme="light" class="active">浅色</button>
+        <button data-theme="dark">深色</button>
+      </div>
+    </header>
+
+    <main class="grid">
+
+      <!-- ============ 1. 空态 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="empty">
+              <div class="empty__icon">✦</div>
+              <div class="empty__title">还没有照片</div>
+              <div class="empty__desc">添加第一张照片,开始用 BlurFrame 给它加上漂亮的边框</div>
+              <button class="btn-primary">+ 添加照片</button>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">01</span>
+          <div class="card__title">空态 / 引导</div>
+          <p class="card__desc">首次启动的引导。极简的图标 + 引导语 + 主操作。</p>
+        </div>
+      </article>
+
+      <!-- ============ 2. 资料库 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar">
+              <div style="width:36px"></div>
+              <div class="app-bar__title">资料库</div>
+              <div class="app-bar__right">筛选</div>
+            </div>
+            <div class="search-bar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+              <span>搜索照片、标签、相册</span>
+            </div>
+            <div class="photo-grid">
+              <div class="photo-cell"><div class="ph ph-1"></div></div>
+              <div class="photo-cell"><div class="ph ph-2"></div></div>
+              <div class="photo-cell"><div class="ph ph-3"></div></div>
+              <div class="photo-cell"><div class="ph ph-4"></div></div>
+              <div class="photo-cell"><div class="ph ph-5"></div></div>
+              <div class="photo-cell"><div class="ph ph-6"></div></div>
+              <div class="photo-cell"><div class="ph ph-7"></div></div>
+              <div class="photo-cell"><div class="ph ph-8"></div></div>
+              <div class="photo-cell"><div class="ph ph-9"></div></div>
+              <div class="photo-cell"><div class="ph ph-10"></div></div>
+              <div class="photo-cell"><div class="ph ph-11"></div></div>
+              <div class="photo-cell"><div class="ph ph-12"></div></div>
+            </div>
+            <div class="fab">+</div>
+            <div class="tab-bar">
+              <div class="tab-bar__item tab-bar__item--active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                <span>资料库</span>
+              </div>
+              <div class="tab-bar__item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 14h18"/></svg>
+                <span>相册</span>
+              </div>
+              <div class="tab-bar__item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+                <span>搜索</span>
+              </div>
+              <div class="tab-bar__item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>设置</span>
+              </div>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">02</span>
+          <div class="card__title">资料库</div>
+          <p class="card__desc">主屏幕。3 列照片网格,顶部搜索,右下悬浮加号,底部 4 标签栏。</p>
+        </div>
+      </article>
+
+      <!-- ============ 3. 选择模式 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar">
+              <div class="app-bar__back" style="font-size:14px;font-weight:600;">取消</div>
+              <div class="app-bar__title">3 已选</div>
+              <div class="app-bar__right">全选</div>
+            </div>
+            <div class="photo-grid" style="flex:1;overflow:hidden;">
+              <div class="photo-cell photo-cell--selected"><div class="ph ph-1"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell"><div class="ph ph-2"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell photo-cell--selected"><div class="ph ph-3"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell"><div class="ph ph-4"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell"><div class="ph ph-5"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell photo-cell--selected"><div class="ph ph-6"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell"><div class="ph ph-7"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell"><div class="ph ph-8"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell"><div class="ph ph-9"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell"><div class="ph ph-10"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell"><div class="ph ph-11"></div><div class="photo-cell__check"></div></div>
+              <div class="photo-cell"><div class="ph ph-12"></div><div class="photo-cell__check"></div></div>
+            </div>
+            <div class="action-bar">
+              <div class="action-bar__item action-bar__item--danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                <span>删除</span>
+              </div>
+              <div class="action-bar__divider"></div>
+              <div class="action-bar__item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v13H4z"/><path d="M4 7l8 6 8-6"/></svg>
+                <span>加到相册</span>
+              </div>
+              <div class="action-bar__divider"></div>
+              <div class="action-bar__item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+                <span>应用相框</span>
+              </div>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">03</span>
+          <div class="card__title">选择模式 (批量操作)</div>
+          <p class="card__desc">长按进入多选。勾选圈、蓝色蒙层、计数、底部批量操作栏。<strong>批量删除 / 批量加相册 / 批量应用相框</strong>。</p>
+        </div>
+      </article>
+
+      <!-- ============ 4. 上滑删除 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="swipe-demo">
+              <div class="swipe-demo__grid">
+                <div><div class="ph ph-1"></div></div>
+                <div><div class="ph ph-2"></div></div>
+                <div><div class="ph ph-3"></div></div>
+                <div><div class="ph ph-4"></div></div>
+                <div><div class="ph ph-5"></div></div>
+                <div><div class="ph ph-6"></div></div>
+                <div><div class="ph ph-7"></div></div>
+                <div><div class="ph ph-8"></div></div>
+                <div><div class="ph ph-9"></div></div>
+                <div><div class="ph ph-10"></div></div>
+                <div><div class="ph ph-11"></div></div>
+                <div><div class="ph ph-12"></div></div>
+              </div>
+              <div class="swipe-demo__delete">松开删除 ⤴</div>
+              <div class="swipe-demo__card"><div class="ph ph-3"></div></div>
+              <div class="swipe-demo__arrow">↑ 向上滑</div>
+              <div class="swipe-demo__hint">手势示意</div>
+              <div class="swipe-demo__toast">已删除 1 张 · <span>撤销</span></div>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">04</span>
+          <div class="card__title">上滑删除</div>
+          <p class="card__desc">在资料库内对单张图上滑:露出红色"删除"区,松手即删,弹出可撤销 toast。</p>
+        </div>
+      </article>
+
+      <!-- ============ 5. 相册列表 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar">
+              <div style="width:36px"></div>
+              <div class="app-bar__title">相册</div>
+              <div class="app-bar__right" style="font-size:20px;">+</div>
+            </div>
+            <div class="album-list">
+              <div class="album-item">
+                <div class="album-cover">
+                  <div class="ph ph-1"></div><div class="ph ph-2"></div>
+                  <div class="ph ph-3"></div><div class="ph ph-4"></div>
+                </div>
+                <div class="album-meta">
+                  <div class="album-name">夏威夷 2025</div>
+                  <div class="album-sub">42 张 · 2025-03-15</div>
+                </div>
+                <div class="album-chev">›</div>
+              </div>
+              <div class="album-item">
+                <div class="album-cover">
+                  <div class="ph ph-5"></div><div class="ph ph-6"></div>
+                  <div class="ph ph-7"></div><div class="ph ph-8"></div>
+                </div>
+                <div class="album-meta">
+                  <div class="album-name">周末露营</div>
+                  <div class="album-sub">18 张 · 2025-05-08</div>
+                </div>
+                <div class="album-chev">›</div>
+              </div>
+              <div class="album-item">
+                <div class="album-cover">
+                  <div class="ph ph-9"></div><div class="ph ph-10"></div>
+                  <div class="ph ph-11"></div><div class="ph ph-12"></div>
+                </div>
+                <div class="album-meta">
+                  <div class="album-name">城市夜景</div>
+                  <div class="album-sub">26 张 · 2025-06-01</div>
+                </div>
+                <div class="album-chev">›</div>
+              </div>
+              <div class="album-item">
+                <div class="album-cover">
+                  <div class="ph ph-3"></div><div class="ph ph-1"></div>
+                  <div class="ph ph-6"></div><div class="ph ph-9"></div>
+                </div>
+                <div class="album-meta">
+                  <div class="album-name">家人</div>
+                  <div class="album-sub">87 张 · 全部</div>
+                </div>
+                <div class="album-chev">›</div>
+              </div>
+              <div class="album-item">
+                <div class="album-cover">
+                  <div class="ph ph-8"></div><div class="ph ph-11"></div>
+                  <div class="ph ph-2"></div><div class="ph ph-5"></div>
+                </div>
+                <div class="album-meta">
+                  <div class="album-name">收藏</div>
+                  <div class="album-sub">12 张 · 自动</div>
+                </div>
+                <div class="album-chev">›</div>
+              </div>
+            </div>
+            <div class="tab-bar">
+              <div class="tab-bar__item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                <span>资料库</span>
+              </div>
+              <div class="tab-bar__item tab-bar__item--active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 14h18"/></svg>
+                <span>相册</span>
+              </div>
+              <div class="tab-bar__item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+                <span>搜索</span>
+              </div>
+              <div class="tab-bar__item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>设置</span>
+              </div>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">05</span>
+          <div class="card__title">相册列表</div>
+          <p class="card__desc">2×2 拼图式封面 + 名称 + 张数 + 日期。"好看"的关键是封面用前 4 张照片拼图,而不是单色块。</p>
+        </div>
+      </article>
+
+      <!-- ============ 6. 相册详情 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar">
+              <div class="app-bar__back">‹</div>
+              <div class="app-bar__title" style="font-size:14px;">夏威夷 2025</div>
+              <div class="app-bar__action" style="font-size:20px;">⋯</div>
+            </div>
+            <div class="album-hero">
+              <div class="album-hero__bg ph ph-3"></div>
+              <div class="album-hero__fg ph ph-1"></div>
+              <div class="album-hero__info">
+                <div class="album-hero__title">夏威夷 2025</div>
+                <div class="album-hero__sub">42 张照片 · 2025-03-08 ~ 03-15</div>
+              </div>
+            </div>
+            <div class="album-photos">
+              <div class="ph ph-1"></div><div class="ph ph-2"></div><div class="ph ph-3"></div>
+              <div class="ph ph-4"></div><div class="ph ph-5"></div><div class="ph ph-6"></div>
+              <div class="ph ph-7"></div><div class="ph ph-8"></div><div class="ph ph-9"></div>
+              <div class="ph ph-10"></div><div class="ph ph-11"></div><div class="ph ph-12"></div>
+              <div class="ph ph-3"></div><div class="ph ph-6"></div><div class="ph ph-1"></div>
+              <div class="ph ph-9"></div><div class="ph ph-4"></div><div class="ph ph-11"></div>
+              <div class="ph ph-2"></div><div class="ph ph-5"></div><div class="ph ph-8"></div>
+              <div class="ph ph-12"></div><div class="ph ph-7"></div><div class="ph ph-10"></div>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">06</span>
+          <div class="card__title">相册详情</div>
+          <p class="card__desc">Hero 区:模糊背景 + 居中封面 + 标题浮在底部。下方是该相册的照片网格。</p>
+        </div>
+      </article>
+
+      <!-- ============ 7. 搜索 / 过滤 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar">
+              <div class="app-bar__back">‹</div>
+              <div class="app-bar__title" style="font-size:14px;">搜索</div>
+              <div style="width:36px"></div>
+            </div>
+            <div class="search-bar" style="border:1px solid var(--accent);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+              <span style="color:var(--text);">海</span>
+            </div>
+            <div class="search-screen">
+              <div class="filter-group">
+                <div class="filter-group__title">标签</div>
+                <div class="chip-row">
+                  <span class="chip">旅行</span>
+                  <span class="chip chip--active">海</span>
+                  <span class="chip">山</span>
+                  <span class="chip">家人</span>
+                  <span class="chip">夜景</span>
+                </div>
+              </div>
+              <div class="filter-group">
+                <div class="filter-group__title">颜色标签</div>
+                <div class="color-dots">
+                  <div class="color-dot color-dot--active" style="background:#ef4444;"></div>
+                  <div class="color-dot" style="background:#f59e0b;"></div>
+                  <div class="color-dot" style="background:#10b981;"></div>
+                  <div class="color-dot" style="background:#3b82f6;"></div>
+                  <div class="color-dot" style="background:#8b5cf6;"></div>
+                </div>
+              </div>
+              <div class="filter-group">
+                <div class="filter-group__title">星级</div>
+                <div class="stars">
+                  <span class="on">★</span><span class="on">★</span><span class="on">★</span><span>★</span><span>★</span>
+                </div>
+              </div>
+              <div class="result-strip">
+                <div class="result-strip__count">找到 23 张</div>
+                <div class="result-strip__row">
+                  <div class="ph ph-7"></div>
+                  <div class="ph ph-1"></div>
+                  <div class="ph ph-7"></div>
+                  <div class="ph ph-3"></div>
+                  <div class="ph ph-8"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">07</span>
+          <div class="card__title">搜索 / 过滤</div>
+          <p class="card__desc">Lightroom 风格:标签 chip + 颜色标签 + 星级 + 搜索框。底部结果横滑预览。</p>
+        </div>
+      </article>
+
+      <!-- ============ 8. 照片详情 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar" style="color:white;"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar" style="color:white;position:absolute;top:50px;left:0;right:0;z-index:5;">
+              <div class="app-bar__back" style="color:white;">‹</div>
+              <div style="width:36px"></div>
+              <div class="app-bar__action" style="color:white;font-size:20px;">⋯</div>
+            </div>
+            <div class="photo-detail">
+              <div class="photo-detail__img">
+                <div class="ph ph-1" style="width:100%;height:100%;"></div>
+              </div>
+              <div class="photo-detail__exif">
+                <div class="exif-row"><span class="exif-row__label">相机</span><span class="exif-row__value">iPhone 15 Pro</span></div>
+                <div class="exif-row"><span class="exif-row__label">镜头</span><span class="exif-row__value">6.86mm · f/1.78</span></div>
+                <div class="exif-row"><span class="exif-row__label">ISO / 快门</span><span class="exif-row__value">ISO 64 · 1/250s</span></div>
+                <div class="exif-row" style="border:none;"><span class="exif-row__label">拍摄时间</span><span class="exif-row__value">2025-03-15 14:30</span></div>
+                <div class="tag-pills">
+                  <span class="tag-pill">#旅行</span>
+                  <span class="tag-pill">#海</span>
+                  <span class="tag-pill">#夏威夷</span>
+                  <span class="tag-pill">#日落</span>
+                </div>
+                <div class="photo-detail__actions">
+                  <button class="btn-secondary">分享</button>
+                  <button class="btn-primary" style="flex:2;">应用相框</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">08</span>
+          <div class="card__title">照片详情</div>
+          <p class="card__desc">大图 + EXIF 元数据 + 标签。主操作"应用相框"占更大权重,次操作"分享"。</p>
+        </div>
+      </article>
+
+      <!-- ============ 9. 编辑器 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar">
+              <div class="app-bar__back" style="font-size:14px;font-weight:600;">取消</div>
+              <div class="app-bar__title" style="font-size:14px;">编辑器</div>
+              <div class="app-bar__right">应用</div>
+            </div>
+            <div class="editor">
+              <div class="editor-frame">
+                <div class="editor-frame__bg"></div>
+                <div class="editor-frame__inner"></div>
+              </div>
+              <div class="editor-template-row">
+                <div class="template-chip template-chip--active">
+                  <div class="template-chip__bg" style="background:linear-gradient(135deg,#ff9a9e,#fad0c4);"></div>
+                  <div class="template-chip__inner" style="background:linear-gradient(135deg,#ff9a9e,#fad0c4);"></div>
+                  <div class="template-chip__name">经典模糊</div>
+                </div>
+                <div class="template-chip">
+                  <div class="template-chip__bg" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb);"></div>
+                  <div class="template-chip__inner" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb);"></div>
+                  <div class="template-chip__name">相机水印</div>
+                </div>
+                <div class="template-chip">
+                  <div class="template-chip__bg" style="background:linear-gradient(135deg,#fccb90,#d57eeb);"></div>
+                  <div class="template-chip__inner" style="background:linear-gradient(135deg,#fccb90,#d57eeb);"></div>
+                  <div class="template-chip__name">复古</div>
+                </div>
+                <div class="template-chip">
+                  <div class="template-chip__bg" style="background:linear-gradient(135deg,#4facfe,#00f2fe);"></div>
+                  <div class="template-chip__inner" style="background:linear-gradient(135deg,#4facfe,#00f2fe);"></div>
+                  <div class="template-chip__name">极简</div>
+                </div>
+                <div class="template-chip">
+                  <div class="template-chip__bg" style="background:linear-gradient(135deg,#43e97b,#38f9d7);"></div>
+                  <div class="template-chip__inner" style="background:linear-gradient(135deg,#43e97b,#38f9d7);"></div>
+                  <div class="template-chip__name">杂志</div>
+                </div>
+              </div>
+              <div class="editor-slider">
+                <div class="editor-slider__head"><span>模糊半径</span><strong>40px</strong></div>
+                <div class="slider-track"><div class="slider-fill"></div><div class="slider-thumb"></div></div>
+              </div>
+              <div class="editor-slider">
+                <div class="editor-slider__head"><span>边框宽度</span><strong>15%</strong></div>
+                <div class="slider-track"><div class="slider-fill" style="width:30%;"></div><div class="slider-thumb" style="left:30%;"></div></div>
+              </div>
+              <div class="editor-toggle">
+                <span>应用到全部 3 张已选</span>
+                <div class="switch switch--on"></div>
+              </div>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">09</span>
+          <div class="card__title">编辑器</div>
+          <p class="card__desc">大预览 + 模板横滑 + 模糊/边框滑块 + "应用到所有选中"开关。<strong>支持批量应用</strong>。</p>
+        </div>
+      </article>
+
+      <!-- ============ 10. 模板管理 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar">
+              <div class="app-bar__back">‹</div>
+              <div class="app-bar__title" style="font-size:14px;">我的模板</div>
+              <div class="app-bar__right" style="font-size:20px;">+</div>
+            </div>
+            <div class="tpl-grid">
+              <div class="tpl-card">
+                <div class="tpl-card__preview">
+                  <div class="editor-frame"><div class="editor-frame__bg" style="background:linear-gradient(135deg,#ff9a9e,#fad0c4);"></div><div class="editor-frame__inner" style="background:linear-gradient(135deg,#ff9a9e,#fad0c4);"></div></div>
+                </div>
+                <div class="tpl-card__body">
+                  <div class="tpl-card__name">经典模糊</div>
+                  <div class="tpl-card__sub">使用 24 次</div>
+                </div>
+              </div>
+              <div class="tpl-card">
+                <div class="tpl-card__preview">
+                  <div class="editor-frame"><div class="editor-frame__bg" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb);"></div><div class="editor-frame__inner" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb);"></div></div>
+                </div>
+                <div class="tpl-card__body">
+                  <div class="tpl-card__name">相机水印</div>
+                  <div class="tpl-card__sub">使用 8 次</div>
+                </div>
+              </div>
+              <div class="tpl-card">
+                <div class="tpl-card__preview">
+                  <div class="editor-frame"><div class="editor-frame__bg" style="background:linear-gradient(135deg,#fccb90,#d57eeb);"></div><div class="editor-frame__inner" style="background:linear-gradient(135deg,#fccb90,#d57eeb);"></div></div>
+                </div>
+                <div class="tpl-card__body">
+                  <div class="tpl-card__name">复古</div>
+                  <div class="tpl-card__sub">使用 15 次</div>
+                </div>
+              </div>
+              <div class="tpl-card" style="background:transparent;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;min-height:120px;color:var(--muted);">
+                <div style="font-size:28px;">+</div>
+                <div style="font-size:12px;">新建模板</div>
+              </div>
+            </div>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">10</span>
+          <div class="card__title">模板管理</div>
+          <p class="card__desc">2 列网格的模板卡片,带预览缩略图 + 名称 + 使用次数。右上有"+",末位是虚线"新建"占位。</p>
+        </div>
+      </article>
+
+      <!-- ============ 11. 模板编辑 ============ -->
+      <article class="card">
+        <div class="device">
+          <div class="device__notch"></div>
+          <div class="device__screen">
+            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar">
+              <div class="app-bar__back" style="font-size:14px;font-weight:600;">取消</div>
+              <div class="app-bar__title" style="font-size:14px;">新建模板</div>
+              <div class="app-bar__right">保存</div>
+            </div>
+            <div class="tpl-edit">
+              <div class="tpl-edit__preview">
+                <div class="editor-frame" style="aspect-ratio:16/10;">
+                  <div class="editor-frame__bg" style="background:linear-gradient(135deg,#ff9a9e,#fad0c4);"></div>
+                  <div class="editor-frame__inner" style="background:linear-gradient(135deg,#ff9a9e,#fad0c4);"></div>
+                </div>
+              </div>
+              <div class="tpl-section">
+                <div class="tpl-section__head">
+                  <span>模糊边框</span>
+                  <div class="switch switch--on"></div>
+                </div>
+                <div class="tpl-row">
+                  <span style="color:var(--muted);">模糊半径</span>
+                  <strong>40px</strong>
+                </div>
+                <div class="slider-track"><div class="slider-fill"></div><div class="slider-thumb"></div></div>
+              </div>
+              <div class="tpl-section">
+                <div class="tpl-section__head">
+                  <span>底部水印</span>
+                  <div class="switch switch--on"></div>
+                </div>
+                <div class="tpl-row">
+                  <span style="color:var(--muted);">文本</span>
+                  <input class="tpl-input" value="BlurFrame">
+                </div>
+                <div class="tpl-row">
+                  <span style="color:var(--muted);">使用 EXIF 信息</span>
+                  <div class="switch switch--on"></div>
+                </div>
+                <div class="tpl-row">
+                  <span style="color:var(--muted);">显示相机/ISO/快门</span>
+                  <div class="switch"></div>
+                </div>
+              </div>
+              <div class="tpl-section">
+                <div class="tpl-section__head">
+                  <span>颜色标签条</span>
+                  <div class="switch"></div>
+                </div>
+              </div>
+            </div>
+            <button class="tpl-save">保存模板</button>
+          </div>
+          <div class="device__home"></div>
+        </div>
+        <div class="card__caption">
+          <span class="card__num">11</span>
+          <div class="card__title">模板编辑</div>
+          <p class="card__desc">3 个独立"层"开关(模糊边框 / 底部水印 / 颜色标签条),每层有各自的参数。底部"保存模板"主按钮浮在最下。</p>
+        </div>
+      </article>
+
+    </main>
+  </div>
+
+  <script>
+    // 主题切换
+    document.querySelectorAll('.theme-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        document.documentElement.dataset.theme = theme;
+        document.querySelectorAll('.theme-toggle button').forEach(b => b.classList.toggle('active', b === btn));
+      });
+    });
+  </script>
+</body>
+</html>

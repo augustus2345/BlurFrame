@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15171a" media="(prefers-color-scheme: dark)">
+  <title>BlurFrame</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --panel: #f6f7f9;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --accent: #4f8cff;
+      --accent-soft: rgba(79, 140, 255, 0.15);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #15171a;
+        --panel: #1c1f24;
+        --border: #2a2e34;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent-soft: rgba(79, 140, 255, 0.25);
+      }
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0;
+      background: #6b7280;          /* 桌面端"桌面"色;移动端被 .app 覆盖 */
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    input, button, .preview-empty { touch-action: manipulation; }
+    canvas, img { user-select: none; -webkit-user-drag: none; }
+
+    .app {
+      max-width: 430px;
+      margin: 0 auto;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+    }
+    @media (max-width: 430px) {
+      .app { max-width: 100%; }
+    }
+
+    /* Header */
+    .app__header {
+      padding: calc(env(safe-area-inset-top, 0px) + 12px) 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .app__header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    /* Preview area */
+    .app__preview {
+      flex: 1;
+      min-height: 0;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .preview-empty {
+      width: 100%;
+      height: 100%;
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .preview-empty:active {
+      background: var(--panel);
+      border-color: var(--accent);
+    }
+    .preview-empty svg { width: 48px; height: 48px; opacity: 0.55; }
+    .preview-empty span { font-size: 14px; }
+
+    .preview-canvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    }
+    @media (prefers-color-scheme: dark) {
+      .preview-canvas { box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5); }
+    }
+
+    /* Controls */
+    .app__controls {
+      flex-shrink: 0;
+      padding: 12px 20px calc(env(safe-area-inset-bottom, 0px) + 14px);
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .slider { display: flex; flex-direction: column; gap: 4px; }
+    .slider__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .slider__head label { color: var(--muted); }
+    .slider__value { color: var(--text); font-variant-numeric: tabular-nums; }
+    .slider input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+      margin: 6px 0;
+    }
+    .slider input[type="range"]:disabled { opacity: 0.35; }
+    .slider input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+      cursor: pointer;
+    }
+    .slider input[type="range"]::-moz-range-thumb {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+      border: none;
+      cursor: pointer;
+    }
+
+    .actions { display: flex; gap: 10px; margin-top: 2px; }
+    .btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 22px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: filter 0.12s, opacity 0.15s, background 0.12s;
+    }
+    .btn--primary { background: var(--accent); color: #fff; }
+    .btn--primary:active { filter: brightness(0.9); }
+    .btn--secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+    .btn--secondary:active { background: var(--panel); }
+    .btn[hidden] { display: none; }
+
+    /* Hidden file input: 视觉不可见但 JS click() 仍可用 */
+    .hidden-input {
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    /* 状态切换 */
+    .app[data-state="empty"] .preview-canvas { display: none; }
+    .app[data-state="loaded"] .preview-empty { display: none; }
+  </style>
+</head>
+<body>
+  <input type="file" id="file" class="hidden-input" accept="image/*" tabindex="-1" aria-hidden="true">
+
+  <div class="app" data-state="empty">
+    <header class="app__header">
+      <h1>BlurFrame</h1>
+    </header>
+
+    <main class="app__preview">
+      <label for="file" class="preview-empty" id="emptyState">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <circle cx="8.5" cy="10.5" r="1.5"/>
+          <path d="M21 17l-5-5-9 8"/>
+        </svg>
+        <span>轻点选择图片</span>
+      </label>
+      <canvas id="canvas" class="preview-canvas"></canvas>
+    </main>
+
+    <footer class="app__controls">
+      <div class="slider">
+        <div class="slider__head">
+          <label for="blur">模糊半径</label>
+          <span class="slider__value"><span id="blurVal">40</span>px</span>
+        </div>
+        <input type="range" id="blur" min="0" max="80" value="40" disabled>
+      </div>
+      <div class="slider">
+        <div class="slider__head">
+          <label for="border">边框宽度</label>
+          <span class="slider__value"><span id="borderVal">15</span>%</span>
+        </div>
+        <input type="range" id="border" min="0" max="50" value="15" disabled>
+      </div>
+      <div class="actions">
+        <button class="btn btn--secondary" id="pickBtn" type="button">选图</button>
+        <button class="btn btn--primary" id="saveBtn" type="button" hidden>保存</button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const $ = id => document.getElementById(id);
+      const fileInput = $('file');
+      const blurInput = $('blur');
+      const borderInput = $('border');
+      const blurVal = $('blurVal');
+      const borderVal = $('borderVal');
+      const pickBtn = $('pickBtn');
+      const saveBtn = $('saveBtn');
+      const canvas = $('canvas');
+      const app = document.querySelector('.app');
+
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // 状态
+      let img = null;
+      let lastObjectURL = null;
+      let rafId = null;
+      const MAX_PIXELS = 4096 * 4096;
+
+      function setState(s) {
+        app.dataset.state = s;
+        const loaded = s === 'loaded';
+        blurInput.disabled = !loaded;
+        borderInput.disabled = !loaded;
+        saveBtn.hidden = !loaded;
+      }
+
+      // 大图降采样,避免 iOS 上 ctx.filter blur 卡顿
+      function maybeDownsample(source) {
+        if (source.width * source.height <= MAX_PIXELS) return source;
+        const scale = Math.sqrt(MAX_PIXELS / (source.width * source.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(source.width * scale);
+        c.height = Math.round(source.height * scale);
+        const cx = c.getContext('2d');
+        cx.imageSmoothingEnabled = true;
+        cx.imageSmoothingQuality = 'high';
+        cx.drawImage(source, 0, 0, c.width, c.height);
+        return c; // canvas 可以作为 drawImage 的 source
+      }
+
+      // 把画布 CSS 尺寸适配到父容器
+      function fitCanvas() {
+        const parent = canvas.parentElement;
+        const maxW = parent.clientWidth;
+        const maxH = parent.clientHeight;
+        if (maxW <= 0 || maxH <= 0 || !canvas.width || !canvas.height) return;
+        const ratio = canvas.width / canvas.height;
+        let w = maxW, h = maxW / ratio;
+        if (h > maxH) { h = maxH; w = maxH * ratio; }
+        canvas.style.width = Math.floor(w) + 'px';
+        canvas.style.height = Math.floor(h) + 'px';
+      }
+
+      function render() {
+        if (!img) return;
+        const blurRadius = Number(blurInput.value);
+        const borderPct = Number(borderInput.value) / 100;
+        const factor = 1 + 2 * borderPct;
+
+        const cw = Math.max(1, Math.round(img.width * factor));
+        const ch = Math.max(1, Math.round(img.height * factor));
+        if (canvas.width !== cw) canvas.width = cw;
+        if (canvas.height !== ch) canvas.height = ch;
+
+        // 1) 模糊背景:原图拉伸铺满
+        ctx.filter = `blur(${blurRadius}px)`;
+        ctx.drawImage(img, 0, 0, cw, ch);
+
+        // 2) 清晰原图:居中盖上去
+        ctx.filter = 'none';
+        const ox = (cw - img.width) / 2;
+        const oy = (ch - img.height) / 2;
+        ctx.drawImage(img, ox, oy, img.width, img.height);
+
+        fitCanvas();
+      }
+
+      // 滑块高频事件用 RAF 节流
+      function scheduleRender() {
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          render();
+        });
+      }
+
+      function loadFile(file) {
+        if (!file) return;
+        if (lastObjectURL) URL.revokeObjectURL(lastObjectURL);
+        const url = URL.createObjectURL(file);
+        lastObjectURL = url;
+
+        const im = new Image();
+        im.onload = function () {
+          img = maybeDownsample(im);
+          // 状态切换 + 等下一帧布局生效后再 render(fitCanvas 需要 clientWidth/Height)
+          setState('loaded');
+          requestAnimationFrame(() => requestAnimationFrame(render));
+        };
+        im.onerror = function () {
+          alert('图片加载失败,请换个文件试试。');
+          if (lastObjectURL) {
+            URL.revokeObjectURL(lastObjectURL);
+            lastObjectURL = null;
+          }
+        };
+        im.src = url;
+      }
+
+      async function exportPNG() {
+        if (!img) return;
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        if (!blob) { alert('导出失败'); return; }
+        const file = new File([blob], 'photo-with-blur-border.png', { type: 'image/png' });
+
+        // 优先 Web Share(iOS 用户可分享到相册/微信等)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file], title: 'BlurFrame' });
+            return;
+          } catch (_) { /* 用户取消,走下载兜底 */ }
+        }
+        // 兜底:传统 <a download>
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), {
+          href: url, download: 'photo-with-blur-border.png'
+        });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      // 事件
+      fileInput.addEventListener('change', e => {
+        const f = e.target.files && e.target.files[0];
+        if (f) loadFile(f);
+      });
+      pickBtn.addEventListener('click', () => fileInput.click());
+      saveBtn.addEventListener('click', exportPNG);
+
+      blurInput.addEventListener('input', () => {
+        blurVal.textContent = blurInput.value;
+        scheduleRender();
+      });
+      borderInput.addEventListener('input', () => {
+        borderVal.textContent = borderInput.value;
+        scheduleRender();
+      });
+
+      window.addEventListener('resize', fitCanvas);
+      window.addEventListener('orientationchange', fitCanvas);
+
+      // 初始状态
+      setState('empty');
+    })();
+  </script>
+</body>
+</html>
