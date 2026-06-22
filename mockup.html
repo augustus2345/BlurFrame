@@ -141,45 +141,20 @@
     }
 
     /* ========================================================
-       5. Device frame (reusable)
+       5. Screen mockup (reusable)
        ======================================================== */
-    .device {
+    .screen {
       width: 390px;
       height: 844px;
-      background: #0a0a0a;
-      border-radius: 54px;
-      padding: 12px;
-      position: relative;
-      box-shadow: var(--shadow-lg);
-    }
-    .device__notch {
-      position: absolute;
-      top: 14px; left: 50%;
-      transform: translateX(-50%);
-      width: 110px; height: 30px;
-      background: #000;
-      border-radius: 0 0 18px 18px;
-      z-index: 10;
-    }
-    .device__home {
-      position: absolute;
-      bottom: 18px; left: 50%;
-      transform: translateX(-50%);
-      width: 134px; height: 5px;
-      background: var(--text);
-      border-radius: 3px;
-      opacity: 0.5;
-      z-index: 10;
-    }
-    .device__screen {
-      width: 100%; height: 100%;
       background: var(--bg);
-      border-radius: 42px;
+      border-radius: 24px;
       overflow: hidden;
       position: relative;
       display: flex;
       flex-direction: column;
       color: var(--text);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
     }
 
     /* ========================================================
@@ -286,13 +261,14 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 2px;
+      gap: 3px;
       font-size: 10px;
       color: var(--muted);
+      flex: 1;
+      padding: 4px 0;
     }
     .action-bar__item--danger { color: var(--danger); }
-    .action-bar__item svg { width: 22px; height: 22px; }
-    .action-bar__divider { width: 1px; height: 28px; background: var(--border); }
+    .action-bar__item svg { width: 20px; height: 20px; }
 
     /* Photo grid */
     .photo-grid {
@@ -740,6 +716,55 @@
       box-shadow: 0 4px 16px rgba(79,140,255,0.4);
       z-index: 5;
     }
+
+    /* Screen 07: Settings */
+    .settings {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px 8px;
+    }
+    .settings-section { margin-bottom: 16px; }
+    .settings-section__title {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      padding: 0 4px;
+    }
+    .settings-group {
+      background: var(--bg-2);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row__icon {
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .settings-row__title { flex: 1; }
+    .settings-row__value { font-size: 13px; color: var(--muted); }
+    .settings-row__chev { color: var(--muted); font-size: 18px; line-height: 1; }
+    .settings-placeholder {
+      margin-top: 24px;
+      padding: 14px;
+      border: 1.5px dashed var(--border);
+      border-radius: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -759,9 +784,7 @@
 
       <!-- ============ 1. 空态 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="empty">
               <div class="empty__icon">✦</div>
@@ -770,8 +793,6 @@
               <button class="btn-primary">+ 添加照片</button>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">01</span>
           <div class="card__title">空态 / 引导</div>
@@ -781,9 +802,7 @@
 
       <!-- ============ 2. 资料库 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="app-bar">
               <div style="width:36px"></div>
@@ -828,8 +847,6 @@
               </div>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">02</span>
           <div class="card__title">资料库</div>
@@ -839,9 +856,7 @@
 
       <!-- ============ 3. 选择模式 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="app-bar">
               <div class="app-bar__back" style="font-size:14px;font-weight:600;">取消</div>
@@ -879,8 +894,6 @@
               </div>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">03</span>
           <div class="card__title">选择模式 (批量操作)</div>
@@ -890,9 +903,7 @@
 
       <!-- ============ 4. 上滑删除 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="swipe-demo">
               <div class="swipe-demo__grid">
@@ -916,8 +927,6 @@
               <div class="swipe-demo__toast">已删除 1 张 · <span>撤销</span></div>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">04</span>
           <div class="card__title">上滑删除</div>
@@ -927,9 +936,7 @@
 
       <!-- ============ 5. 相册列表 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="app-bar">
               <div style="width:36px"></div>
@@ -1012,8 +1019,6 @@
               </div>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">05</span>
           <div class="card__title">相册列表</div>
@@ -1023,9 +1028,7 @@
 
       <!-- ============ 6. 相册详情 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="app-bar">
               <div class="app-bar__back">‹</div>
@@ -1051,8 +1054,6 @@
               <div class="ph ph-12"></div><div class="ph ph-7"></div><div class="ph ph-10"></div>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">06</span>
           <div class="card__title">相册详情</div>
@@ -1062,9 +1063,7 @@
 
       <!-- ============ 7. 搜索 / 过滤 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="app-bar">
               <div class="app-bar__back">‹</div>
@@ -1114,8 +1113,6 @@
               </div>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">07</span>
           <div class="card__title">搜索 / 过滤</div>
@@ -1125,9 +1122,7 @@
 
       <!-- ============ 8. 照片详情 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar" style="color:white;"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="app-bar" style="color:white;position:absolute;top:50px;left:0;right:0;z-index:5;">
               <div class="app-bar__back" style="color:white;">‹</div>
@@ -1156,8 +1151,6 @@
               </div>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">08</span>
           <div class="card__title">照片详情</div>
@@ -1167,9 +1160,7 @@
 
       <!-- ============ 9. 编辑器 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="app-bar">
               <div class="app-bar__back" style="font-size:14px;font-weight:600;">取消</div>
@@ -1222,8 +1213,6 @@
               </div>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">09</span>
           <div class="card__title">编辑器</div>
@@ -1233,9 +1222,7 @@
 
       <!-- ============ 10. 模板管理 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="app-bar">
               <div class="app-bar__back">‹</div>
@@ -1276,8 +1263,6 @@
               </div>
             </div>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">10</span>
           <div class="card__title">模板管理</div>
@@ -1287,9 +1272,7 @@
 
       <!-- ============ 11. 模板编辑 ============ -->
       <article class="card">
-        <div class="device">
-          <div class="device__notch"></div>
-          <div class="device__screen">
+        <div class="screen">
             <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
             <div class="app-bar">
               <div class="app-bar__back" style="font-size:14px;font-weight:600;">取消</div>
@@ -1341,8 +1324,6 @@
             </div>
             <button class="tpl-save">保存模板</button>
           </div>
-          <div class="device__home"></div>
-        </div>
         <div class="card__caption">
           <span class="card__num">11</span>
           <div class="card__title">模板编辑</div>
