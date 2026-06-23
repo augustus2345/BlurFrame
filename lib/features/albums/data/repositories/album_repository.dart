@@ -7,7 +7,7 @@ import '../models/album_model.dart';
 class AlbumRepository {
   AlbumRepository();
 
-  Box get _box => HiveService.albums;
+  Box<dynamic> get _box => HiveService.albums;
 
   List<AlbumModel> getAll() => _box.values.cast<AlbumModel>().toList();
 

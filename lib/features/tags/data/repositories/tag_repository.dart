@@ -7,7 +7,7 @@ import '../models/tag_model.dart';
 class TagRepository {
   TagRepository();
 
-  Box get _box => HiveService.tags;
+  Box<dynamic> get _box => HiveService.tags;
 
   List<TagModel> getAll() => _box.values.cast<TagModel>().toList();
 

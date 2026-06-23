@@ -6,10 +6,28 @@ import 'hive_service.dart';
 
 /// Thin wrapper over the settings box for typed reads/writes.
 /// Keeps Hive key strings out of feature code.
+///
+/// Supports two construction paths:
+///   - [SettingsService] (default) — production path, reads from
+///     [HiveService.settings]. Requires `HiveService.init()` to have run
+///     first.
+///   - [SettingsService.fromBox] — DI / test path, accepts an explicit
+///     [Box] (typically a mocktail mock). Same convention as
+///     [FrameRepository.fromBox].
 class SettingsService {
-  SettingsService();
+  /// 默认构造：从全局 [HiveService.settings] 取 box。
+  ///
+  /// 生产路径，依赖 `HiveService.init()` 已先于本实例使用前调用完成。
+  SettingsService() : _box = HiveService.settings;
 
-  Box get _box => HiveService.settings;
+  /// 测试 / DI 构造：传入指定的 box（通常用 mocktail 的 `Mock implements Box<dynamic>`）。
+  ///
+  /// 与 [FrameRepository.fromBox] 保持同样的依赖注入约定。
+  SettingsService.fromBox(Box<dynamic> box) : _box = box;
+
+  /// 当前使用的 settings box。生产路径下为全局 `HiveService.settings`，
+  /// DI 路径下为构造时注入的 box。
+  final Box<dynamic> _box;
 
   ThemeMode getThemeMode() {
     final value = _box.get(AppConstants.themeModeKey, defaultValue: 'system');
