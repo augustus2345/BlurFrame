@@ -167,24 +167,25 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **111/111** 通过（95 旧 + 16 新）
   - **预估**: 40 min
   - **完成时间**: 2026-06-23
-- [ ] **M1-T6** 详情页：双指缩放、双击放大、左右滑切换
-- [ ] **M1-T7** 长按多选模式 + Provider 维护 `Set<String> selectedIds`
-- [ ] **M1-T8** 详情页底部 EXIF 展示（拍摄时间、机型、镜头、ISO 等）
-- [ ] **M1-T9** 4 态显式：loading / success / error / empty
-- [ ] **M1-T10** 测试：PhotoRepository / ExifDatasource / PhotoGrid widget
+- [ ] **M1-T6** 详情页（`/photo/:assetId`，push）：双指缩放 + 双击放大/还原 + 左右滑切换；**底部 5 项批量操作**（删除 / 标签 / 星级 / 影集 / 模版）
+- [ ] **M1-T7** 长按多选模式 + `MultiSelectProvider` 维护 `Set<String> selectedIds`（与 5 项批量操作联动）
+- [ ] **M1-T8** 详情页完整结构：顶部大图 + EXIF 字段表（**相机/镜头/ISO/快门/拍摄时间**，基于 `ExifDatasource.parse`）+ 标签 pills + 底部"**分享 / 应用模版**"双按钮
+- [ ] **M1-T9** 4 态显式：loading / success / error / empty（`AsyncValue.when` + `EmptyState`，M1-T5 已覆盖 gallery 4 态；M1-T6 详情页复用同一套）
+- [ ] **M1-T10** 测试：`PhotoRepository` / `ExifDatasource` / `PhotoGrid` widget 三个核心文件覆盖完整
 
 **完成时间**: _待定_
 
 ---
 
-## M2 — 相框模板 ⬜
+## M2 — 模版 ⬜（独立 tab，对齐 mockup v3 / PRD v0.2）
 
-- [ ] **M2-T1** `FrameTemplate` / `FrameLayer` / 4 种 layer / `WatermarkPosition` 加 `@HiveType` (typeId 2–6)
-- [ ] **M2-T2** 内置 3 套模板：Classic White / Camera Watermark / Soft Edge
-- [ ] **M2-T3** `FrameRenderer` 渲染器（`compute` 隔离，输入 bytes + template → bytes）
-- [ ] **M2-T4** 模板编辑器：图层列表 + 预览 + 属性面板 + 添加图层
-- [ ] **M2-T5** 导出：详情页"套此相框" → 进度 → `gal.saveImage()` → 提示
-- [ ] **M2-T6** 测试：FrameRenderer 4 种 layer 各自合成逻辑
+- [ ] **M2-T1** `FrameTemplate` / 3 种 `FrameLayer`（`BlurBorderLayer` / `TextWatermarkLayer` / `ColorStripeLayer`）/ `WatermarkPosition` 加 `@HiveType`（typeId 2–5；含 `usageCount` 写回 Hive 字段）
+- [ ] **M2-T2** `FrameRepository.builtInTemplates()` 注入 **2 套**内置模版：**极简**（窄边模糊边框）/ **杂志**（顶部品牌 + 底部 EXIF 水印 + 模糊边框 3 层叠加）
+- [ ] **M2-T3** 模版 tab 列表页（独立 tab `/frames`，不是 push）：2 列网格 + `editor-frame` 预览 + "自带"标记 / "使用 N 次"统计 + 长按复制/删除（内置不可删）
+- [ ] **M2-T4** 模版编辑器 `/frames/editor`（push）：顶部预览 + 中部 3 层分组（每层 switch + 参数：模糊 intensity / 水印 text + EXIF / 颜色选择）+ 底部"保存模板"按钮
+- [ ] **M2-T5** `FrameRenderer` 渲染器（`compute` 隔离，输入 bytes + template → bytes，3 种 layer 按 z-order 合成）
+- [ ] **M2-T6** 导出：详情页"应用模版" → 进度 → `gal.saveImage()` → 提示成功 → 模版 `usageCount += N`
+- [ ] **M2-T7** 测试：FrameRenderer 3 种 layer 各自合成 / `usageCount` 持久化往返 / 编辑器添加/删除图层 widget
 
 **完成时间**: _待定_
 
@@ -205,32 +206,36 @@
 
 ---
 
-## M4 — 标签 + 搜索 ⬜
+## M4 — 标签 + 搜索 ⬜（搜索降级为相册 tab 内 push 二级页，对齐 mockup v3 / PRD v0.2）
 
 - [ ] **M4-T1** `Tag` model `@HiveType(typeId: 8)`
 - [ ] **M4-T2** `TagRepository` 完整 CRUD + 删除保护
 - [ ] **M4-T3** 标签管理页
 - [ ] **M4-T4** Lightroom 风格选择器（已选 + 全部 + 搜索）
-- [ ] **M4-T5** `SearchFilter` model（纯 dart）
-- [ ] **M4-T6** 搜索页：过滤条件 chip 行 + 结果网格
-- [ ] **M4-T7** 4 维过滤：标签(AND/OR) / 日期 / 影集 / 相框状态
-- [ ] **M4-T8** 搜索结果批量操作
-- [ ] **M4-T9** 测试：TagRepository / SearchFilter.matches
+- [ ] **M4-T5** `PhotoModel` 加 **`@HiveField(7) starRating: int`**（0–5，CLAUDE.md §7.7：紧跟现有 0–6 之后；同步更新 `hive_service.registerAdapters` 与 7 个 `photo_model_test.dart` 字段数）
+- [ ] **M4-T6** 照片详情页"加星"交互：5 颗可点星标 → 写回 `PhotoModel.starRating`
+- [ ] **M4-T7** `SearchFilter` model（纯 dart，含 `tagIds` / **`minStarRating`** / `dateRange` / `albumId` / `framedState`）
+- [ ] **M4-T8** 搜索二级页 `/search`（push，**入口在相册 tab 顶部搜索栏**）：过滤条件 chip 行 + 结果网格
+- [ ] **M4-T9** 5 维过滤：标签(AND/OR) / **星级(≥N/=N)** / 日期 / 影集 / 模版状态
+- [ ] **M4-T10** 搜索结果批量操作（打标签 / 加星 / 删除）
+- [ ] **M4-T11** 测试：TagRepository / SearchFilter.matches（4 维交叉） / 星级 widget
 
 **完成时间**: _待定_
 
 ---
 
-## M5 — 批量 + 清理 ⬜
+## M5 — 批量 + 删除 tab ⬜（删除 tab 合并原"清理模式"，对齐 mockup v3 / PRD v0.2）
 
-- [ ] **M5-T1** 批量套相框（含进度 sheet、并发控制）
+- [ ] **M5-T1** 批量套模版（含进度 sheet、并发控制 2、完成后 `usageCount += N`）
 - [ ] **M5-T2** 批量打标签
-- [ ] **M5-T3** 批量删除（二次确认）
-- [ ] **M5-T4** 清理模式 `/cleanup`：单图全屏 + 进度
-- [ ] **M5-T5** 上滑删除 + 撤销 snackbar
-- [ ] **M5-T6** 下滑/双击跳过
-- [ ] **M5-T7** 防竞态：sessionId 校验
-- [ ] **M5-T8** 测试：清理状态机 / 多选 Provider
+- [ ] **M5-T3** **批量加星**（新加，依赖 M4-T5 的 `starRating` 字段）
+- [ ] **M5-T4** 批量加入影集
+- [ ] **M5-T5** 批量删除（二次确认）
+- [ ] **M5-T6** **删除 tab**（独立一级 tab，承载原"清理模式"）：单图全屏（黑底）+ 顶栏 `‹` 返回 / `N / M` 位置计数 / 右上 `⋯` 操作
+- [ ] **M5-T7** 删除 tab **手势**：↑ 滑 → 删除 + 撤销 toast / ← 滑 → 上一张 / → 滑 → 下一张
+- [ ] **M5-T8** 删除 tab 屏幕内提示 hint（首次显示 3s 后渐隐）+ 顶栏 `⋯` 菜单（退出/批量/过滤）
+- [ ] **M5-T9** 防竞态：sessionId 校验 / 撤销栈 `Queue<({assetId, sessionId})>`
+- [ ] **M5-T10** 测试：删除 tab 状态机（4 条路径） / 多选 Provider / 批量加星
 
 **完成时间**: _待定_
 

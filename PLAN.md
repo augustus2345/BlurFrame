@@ -7,10 +7,10 @@
 
 ## 0. 当前状态速览
 
-- **PRD**: ✅ v0.1（[docs/prd/PRD.md](./docs/prd/PRD.md)）
-- **工程骨架**: ✅ 主题 / 路由 / Shell / Hive 启动 / 设置服务已就位
+- **PRD**: ✅ **v0.2**（[docs/prd/PRD.md](./docs/prd/PRD.md) — 对齐 mockup v3：5 tab / 模版独立 tab / 删除 tab 合并清理模式 / 搜索降级为相册 tab 内 push 二级页 / 模板 3 图层 / 2 套内置）
+- **工程骨架**: ✅ 主题 / 路由 / Shell（**5 tab**） / Hive 启动 / 设置服务已就位
 - **M0**: ✅ 基础完成（测试 + 文档注释 + 依赖检查 + registerAdapters 占位 + `flutter run` 推至 M1）
-- **M1**: 🟡 进行中（T1 权限引导 / T2 PhotoModel / T3 loadAllFromSystem / **T4 exif 集成**已完成；T5-T10 占位）
+- **M1**: 🟡 进行中（T1 权限引导 / T2 PhotoModel / T3 loadAllFromSystem / T4 exif 集成 / T5 3 列网格 + 缩略图懒加载 已完成；T6–T10 占位）
 - **M2–M5**: ⬜ 全部为占位 EmptyState，待实现
 - **M6**: ⬜ 打磨 + Integration test
 
@@ -20,13 +20,13 @@
 
 | ID | 名称 | 状态 | 估时 | 累计 |
 | --- | --- | --- | --- | --- |
-| M0 | 基础设施 | ✅ 完成 | 0.5d | 0.5d |
-| M1 | 照片库 | 🟡 | 1.0d | 1.5d |
-| M2 | 相框模板 | ⬜ | 2.0d | 3.5d |
-| M3 | 影集 | ⬜ | 1.0d | 4.5d |
-| M4 | 标签 + 搜索 | ⬜ | 1.0d | 5.5d |
-| M5 | 批量 + 清理 | ⬜ | 1.0d | 6.5d |
-| M6 | 打磨 | ⬜ | 1.0d | 7.5d |
+| M0 | 基础设施（5 tab Shell） | ✅ 完成 | 0.5d | 0.5d |
+| M1 | 照片库 | 🟡 | 1.5d | 2.0d |
+| M2 | 模版（独立 tab） | ⬜ | 2.0d | 4.0d |
+| M3 | 影集 | ⬜ | 1.0d | 5.0d |
+| M4 | 标签 + 搜索（push 二级页） | ⬜ | 1.5d | 6.5d |
+| M5 | 批量 + 删除 tab | ⬜ | 1.5d | 8.0d |
+| M6 | 打磨 | ⬜ | 1.0d | 9.0d |
 
 > 每个里程碑结束必须：✅ 跑通主链路 / ✅ `flutter analyze` 通过 / ✅ `flutter test` 通过 / ✅ TASKS.md 已勾选。
 
@@ -36,7 +36,7 @@
 
 ### M0 — 基础设施 ✅（2026-06-22 完成）
 
-**目标**: 跑得起来，4 tab 切换不丢状态，主题/明暗切换可用，Hive 读写正常。
+**目标**: 跑得起来，**5 tab** 切换不丢状态，主题/明暗切换可用，Hive 读写正常。
 
 **已就位**:
 - `lib/main.dart` — 入口 + 锁定竖屏 + 初始化 Hive
@@ -93,39 +93,47 @@ flutter run
 
 ---
 
-### M2 — 相框模板 ⬜
+### M2 — 模版 ⬜（独立 tab，对齐 mockup v3 / PRD v0.2）
 
-**目标**: 3 套内置模板、模板列表、模板编辑器、渲染器、导出。
+**目标**: **2 套**内置模版、模版 tab 列表（带使用次数）、模版编辑器（**3 种图层**）、渲染器、导出。
 
 **任务拆解**:
-1. `FrameTemplate` / `FrameLayer` 加 `@HiveType`（typeId 2–6：模板 + 4 种 layer + position 枚举）
-2. `FrameRepository.builtInTemplates()` 注入 3 套：
-   - **Classic White** — `BorderLayer` 12px 白色 + 8px 圆角
-   - **Camera Watermark** — `WatermarkLayer` 底部右侧"📷 {Make} {Model} · {DateTimeOriginal}"
-   - **Soft Edge** — `BlurLayer` intensity 8，仅边缘
+1. `FrameTemplate` / `FrameLayer` 加 `@HiveType`（typeId 2–4：模板 + 3 种 layer；`usageCount` 写回 Hive 字段）+ `WatermarkPosition`（typeId 5 枚举）
+2. `FrameRepository.builtInTemplates()` 注入 **2 套**：
+   - **极简** — `BlurBorderLayer` 窄边（intensity 4）
+   - **杂志** — 3 层叠加：顶部品牌 `TextWatermarkLayer` + 底部 EXIF 水印 `TextWatermarkLayer` + 模糊边框 `BlurBorderLayer`
 3. `FrameRenderer`：
    - 输入：`Uint8List sourceBytes` + `FrameTemplate`
-   - 用 `image` 包 `decodeImage` → `drawImage` / `fillRect` / `drawString` 合成
-   - EXIF 角标需要先读 EXIF 拿字段再合成
+   - 用 `image` 包 `decodeImage` → 3 种 layer 按 z-order 合成
    - 走 `compute()` 隔离
    - 输出：`Uint8List jpegBytes`
-4. 模板编辑器 `/frames/editor`：
-   - 左侧图层列表（拖拽重排）
-   - 中间预览（实时套用样图）
-   - 右侧属性面板（颜色/字体/位置/偏移/缩放）
-   - 底部"+ 添加图层"按钮
-5. 导出流程：照片详情页"套此相框" → 进度条 → `gal.saveImage()` 到系统相册 → 提示成功
-6. 测试：
+4. 模版 tab 列表 `/frames`（独立 tab，不是 push 页）：
+   - 2 列网格 + `editor-frame` 预览
+   - 卡片显示：模版名 + "自带"标记 或 "使用 N 次"统计
+   - 长按卡片：复制 / 删除（内置不可删）
+5. 模版编辑器 `/frames/editor`（push）：
+   - 顶部实时预览框
+   - 中部 3 个"层"分组（每层独立 switch 开关 + 参数）：
+     - 模糊边框：`intensity` 滑块
+     - 底部水印：`text` 输入框 + "使用 EXIF 字段" 开关 + 字体/颜色
+     - 颜色标签条：颜色选择器（照片主色自动 / 手动指定）
+   - 底部"保存模板"主按钮
+6. 导出流程：照片详情页"应用模版" → 进度条 → `gal.saveImage()` 到系统相册 → 提示成功 → `usageCount += 1`
+7. 测试：
    - `FrameRenderer.render` 输入固定 fixture → 输出字节长度 / 尺寸稳定
-   - 4 种 layer 各自的合成逻辑单测
-   - widget：编辑器添加图层 → 列表出现
+   - 3 种 layer 各自的合成逻辑单测
+   - widget：编辑器添加/删除图层 → 列表更新
+   - `usageCount` 持久化往返测试
 
 **新增文件**:
 - `lib/features/frames/data/datasources/frame_renderer.dart`（`compute` 函数）
-- `lib/features/frames/presentation/widgets/layer_editor_panel.dart`
+- `lib/features/frames/presentation/widgets/layer_switch_group.dart`（3 层通用分组）
 - `lib/features/frames/presentation/widgets/frame_preview_canvas.dart`
-- `lib/features/frames/presentation/widgets/layer_draggable_list.dart`
+- `lib/features/frames/presentation/widgets/usage_count_badge.dart`
+- `lib/features/frames/presentation/screens/frame_template_list_screen.dart`（独立 tab 的 list）
+- `lib/features/frames/presentation/screens/frame_template_editor_screen.dart`（push 编辑器）
 - `test/features/frames/frame_renderer_test.dart`
+- `test/features/frames/frame_template_list_screen_test.dart`
 
 ---
 
@@ -136,7 +144,7 @@ flutter run
 **任务拆解**:
 1. `Album` model：`@HiveType(typeId: 7)`，字段 `id` / `name` / `coverAssetId` / `photoIds` / `layout` / `createdAt` / `updatedAt`
 2. `AlbumRepository`：`create` / `rename` / `addPhotos` / `removePhotos` / `reorderPhotos` / `setCover` / `setLayout` / `delete`
-3. 影集列表页：2 列网格，封面 = `coverAssetId` 套默认相框后的缩略图
+3. 影集列表页：2 列网格，封面 = 前 4 张照片的 2×2 拼图（或 `coverAssetId` 套默认模版后的渲染图）
 4. 新建影集：底部 sheet → 输名称 + 选照片 + 选版式
 5. 详情页：版式 `autoLayout(N)` 自动选；手动可选 `1/2/3/4` 宫格
 6. 拖拽重排：`ReorderableListView` 持久化到 `photoIds`
@@ -153,19 +161,25 @@ flutter run
 
 ---
 
-### M4 — 标签 + 搜索 ⬜
+### M4 — 标签 + 搜索 ⬜（搜索降级为相册 tab 内 push 二级页，对齐 mockup v3 / PRD v0.2）
 
-**目标**: Lightroom 式打标签、4 维过滤、搜索结果再操作。
+**目标**: Lightroom 式打标签、**星级维度**、**4 维过滤（标签/星级/日期/影集/模版状态）**、搜索结果再操作。
 
 **任务拆解**:
 1. `Tag` model：`@HiveType(typeId: 8)`，字段 `id` / `name` / `color`（ARGB int）/ `createdAt`
 2. `TagRepository`：`create` / `rename` / `setColor` / `delete`（被引用时禁止裸删，先解绑）
 3. 标签管理页：所有标签列表（chip 样式），点击进详情（修改/删除）
 4. Lightroom 风格选择器：照片详情页"添加标签" → 弹出底部 sheet，左侧是"已选标签"色块，右侧是"所有标签"列表，搜索框快速过滤
-5. `SearchFilter` model：纯 dart（不存 Hive），`tagIds` / `dateRange` / `albumId` / `framedState`
-6. 搜索页：顶部过滤条件 chip 行（点开弹选择 sheet），下方结果网格
-7. 4 维过滤：标签（多选 + AND/OR）/ 日期（预设 + 自定义）/ 影集（单选）/ 相框状态（all/framed/unframed）
-8. 搜索结果支持多选 → 批量打标签 / 批量删除
+5. **星级**（新加维度）：
+   - `PhotoModel` 加 `@HiveField(7) starRating: int`（0–5，CLAUDE.md §7.7 编号不可重用，紧跟现有 0–6 之后）
+   - 照片详情页"加星"交互：5 颗可点星标
+   - 批量加星在 M5 实现
+6. `SearchFilter` model：纯 dart（不存 Hive），`tagIds` / **`minStarRating`** / `dateRange` / `albumId` / `framedState`
+7. **搜索二级页** `/search`（push，入口在相册 tab 顶部搜索栏）：
+   - 顶部过滤条件 chip 行（点开弹选择 sheet）
+   - 4 维过滤 chip：标签（多选 + AND/OR）/ **星级（≥N 星 / =N 星）** / 日期（预设 + 自定义）/ 影集（单选）/ 模版状态（all/framed/unframed）
+   - 下方结果网格
+8. 搜索结果支持多选 → 批量打标签 / 批量加星 / 批量删除
 9. 4 态：loading / success / error / empty（"没有匹配的照片"）
 
 **新增文件**:
@@ -174,37 +188,45 @@ flutter run
 - `lib/features/tags/presentation/screens/tag_manager_screen.dart`
 - `lib/features/tags/presentation/widgets/tag_picker_sheet.dart`
 - `lib/features/search/data/repositories/search_repository.dart`
+- `lib/features/search/presentation/screens/search_screen.dart`（push 二级页）
 - `lib/features/search/presentation/widgets/filter_chip_bar.dart`
 - `lib/features/search/presentation/widgets/date_range_picker_sheet.dart`
+- `lib/features/search/presentation/widgets/star_rating_filter_sheet.dart`
 - `test/features/tags/tag_repository_test.dart`
-- `test/features/search/search_filter_test.dart`
+- `test/features/search/search_filter_test.dart`（4 维交叉）
 
 ---
 
-### M5 — 批量 + 清理 ⬜
+### M5 — 批量 + 删除 tab ⬜（删除 tab 合并原"清理模式"，对齐 mockup v3 / PRD v0.2）
 
-**目标**: 批量套相框、批量打标签、批量删除、清理模式。
+**目标**: **5 项**批量操作（套模版 / 打标签 / **加星** / 加影集 / 删除）、**删除 tab**（单图全屏 + 手势删除）。
 
 **任务拆解**:
 1. 多选模式已经在 M1 实现
-2. 批量套相框：多选 → 选模板 → `FrameRenderer` 串行/并行渲染（限制并发 2 防 OOM）→ 进度 sheet → 完成后 snackbar + 跳到系统相册新图
+2. 批量套模版：多选 → 选模版 → `FrameRenderer` 串行/并行渲染（限制并发 2 防 OOM）→ 进度 sheet → 完成后 snackbar + 跳到系统相册新图 + 模版 `usageCount += N`
 3. 批量打标签：多选 → 选标签 → 写入 `PhotoModel.tags`
-4. 批量删除：多选 → 二次确认 sheet（带"也删除原图"开关，提示只能删 App 写入的副本）→ 调用 `PhotoManager.deleteAsset` 或本地
-5. 清理模式 `/cleanup`：
-   - 单张大图全屏
-   - 顶部进度："已处理 N / M"
-   - 上滑 → 删除 + 自动下一张（带撤销 snackbar 5s）
-   - 下滑 / 双击 → 跳过
-   - 暂停 / 退出按钮
-6. 防竞态：每个流程分配 `sessionId`，UI 状态变更前校验
-7. 撤销栈：内存 `Queue<({assetId, sessionId})>`，snackbar 触发则弹回
+4. **批量加星**（新加）：多选 → 选星级（0–5）→ 写入 `PhotoModel.starRating`
+5. 批量加入影集：多选 → 选已有影集或新建
+6. 批量删除：多选 → 二次确认 sheet（带"也删除原图"开关，提示只能删 App 写入的副本）→ 调用 `PhotoManager.deleteAsset` 或本地
+7. **删除 tab**（独立一级 tab，承载原"清理模式"）：
+   - 单张大图全屏（黑底）
+   - 顶栏：`‹` 返回 / 位置计数 `N / M` / 右上 `⋯` 操作
+   - **手势**：
+     - ↑ 滑 → 删除当前 + 自动下一张（带撤销 toast 5s）
+     - ← 滑 → 上一张
+     - → 滑 → 下一张
+   - 屏幕内提示 hint（首次显示 3s 后渐隐）
+   - 顶栏 `⋯` 菜单：退出 / 批量操作 / 切换过滤
+8. 防竞态：每个流程分配 `sessionId`，UI 状态变更前校验
+9. 撤销栈：内存 `Queue<({assetId, sessionId})>`，snackbar/toast 触发则弹回
 
 **新增文件**:
-- `lib/features/photos/presentation/screens/cleanup_screen.dart`
-- `lib/features/photos/presentation/providers/cleanup_provider.dart`
+- `lib/features/photos/presentation/screens/cleanup_screen.dart` → **重命名为 `delete_viewer_screen.dart`**
+- `lib/features/photos/presentation/providers/cleanup_provider.dart` → **重命名为 `delete_viewer_provider.dart`**
 - `lib/features/photos/presentation/providers/multi_select_provider.dart`
-- `lib/features/photos/presentation/widgets/batch_action_sheet.dart`
-- `test/features/photos/cleanup_state_machine_test.dart`
+- `lib/features/photos/presentation/widgets/batch_action_sheet.dart`（**5 项**操作）
+- `lib/features/photos/presentation/widgets/star_rating_picker_sheet.dart`
+- `test/features/photos/delete_viewer_state_machine_test.dart`
 - `test/features/photos/multi_select_provider_test.dart`
 
 ---
@@ -245,8 +267,9 @@ flutter run
 | R1 | `photo_manager` Android 厂商适配 | M1 验证 | 适配层 try/catch |
 | R2 | 大图渲染内存峰值 | M2 验证 | 三档尺寸 + compute 隔离 |
 | R3 | EXIF 在合成后丢失 | M2 验证 | 合成时把 EXIF 写回 |
-| R4 | 上滑手势与系统返回冲突 | M5 验证 | 显式方向判定 |
+| R4 | 删除 tab 手势（上/左/右）与系统返回冲突 | M5 验证 | `GestureDetector` + 明确方向判定，禁掉删除 tab 页面返回 |
 | R5 | Hive typeId 冲突 | M1+ 提前规划 | typeId 1–10 预分配 |
+| R6 | `PhotoModel` 加 `starRating` 时编号管理 | M4 规划中 | 走 CLAUDE.md §7.7：新字段紧跟现有 0–6 之后用 `@HiveField(7)`；删字段保留编号空位 |
 
 ---
 
