@@ -18,16 +18,40 @@ class AppShell extends StatelessWidget {
     _TabSpec(AppRoute.settings, Icons.tune_outlined, Icons.tune_rounded, '设置'),
   ];
 
-  int _indexFromLocation(String location) {
-    for (var i = 0; i < _tabs.length; i++) {
-      if (location.startsWith(_tabs[i].path)) return i;
+  /// Resolve a [location] (a path *without* query string) to the index of
+  /// the tab it belongs to.
+  ///
+  /// Match rule (defensive against future prefix collisions):
+  /// - exact path equality, OR
+  /// - sub-path beginning with `path + '/'` (a real path-segment boundary).
+  ///
+  /// `startsWith(path)` alone is unsafe: it would treat `/settings-extra`
+  /// as `/settings`. The `path/` boundary disambiguates.
+  ///
+  /// Exposed `@visibleForTesting` so the lookup table is unit-testable
+  /// without spinning up a full widget tree.
+  @visibleForTesting
+  static int indexFromLocation(String location, List<String> tabPaths) {
+    for (var i = 0; i < tabPaths.length; i++) {
+      final path = tabPaths[i];
+      if (location == path || location.startsWith('$path/')) return i;
     }
     return 0;
   }
 
+  int _indexFromLocation(String location) {
+    return indexFromLocation(
+      location,
+      _tabs.map((t) => t.path).toList(growable: false),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
+    // Use `uri.path` (not `uri.toString()`) so query strings don't
+    // pollute the tab lookup — `/albums?sort=new` should still resolve
+    // to the Albums tab.
+    final location = GoRouterState.of(context).uri.path;
     final index = _indexFromLocation(location);
 
     return Scaffold(
