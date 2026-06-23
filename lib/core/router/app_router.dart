@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/albums/presentation/screens/album_list_screen.dart';
 import '../../features/frames/presentation/screens/frame_template_list_screen.dart';
+import '../../features/photos/presentation/screens/photo_detail_screen.dart';
 import '../../features/photos/presentation/screens/photo_gallery_screen.dart';
 import '../../features/search/presentation/screens/search_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
@@ -39,6 +40,18 @@ GoRouter _buildRouter() {
     navigatorKey: rootNavigatorKey,
     debugLogDiagnostics: true,
     routes: [
+      // 详情页：顶层 GoRoute（脱离 ShellRoute）→ push 时全屏沉浸，隐藏底部 5 tab。
+      GoRoute(
+        path: AppRoute.photoDetail,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final assetId = state.pathParameters['id'] ?? '';
+          return MaterialPage<void>(
+            key: state.pageKey,
+            child: PhotoDetailScreen(assetId: assetId),
+          );
+        },
+      ),
       ShellRoute(
         navigatorKey: shellNavigatorKey,
         builder: (context, state, child) => AppShell(child: child),

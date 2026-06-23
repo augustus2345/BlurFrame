@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../shared/widgets/empty_state.dart';
 import '../../data/models/photo_model.dart';
@@ -173,6 +174,7 @@ class _PhotoGrid extends ConsumerWidget {
           key: ValueKey<String>('photo_grid_item_${photo.id}'),
           photo: photo,
           thumbnailLoader: (p) => thumbnailLoader(p.id),
+          onTap: () => context.push('/photo/${photo.id}'),
         );
       },
     );

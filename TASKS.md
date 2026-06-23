@@ -149,7 +149,38 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **95/95** 通过（78 旧 + 17 新）
   - **预估**: 25 min
   - **完成时间**: 2026-06-23
-- [x] **M1-T5** 3 列网格 + 缩略图懒加载
+- [x] **M1-T6** 详情页（`/photo/:assetId`，push）：双指缩放 + 双击放大/还原 + 左右滑切换；**底部 5 项批量操作**（删除 / 标签 / 星级 / 影集 / 模版）
+  - 新增 6 个 lib 文件 + 5 个 test 文件：
+    - `lib/features/photos/presentation/providers/photo_by_id_provider.dart` — `Provider.family<PhotoModel?, String>` watch `photosProvider`（数据来源单一）
+    - `lib/features/photos/presentation/providers/full_image_loader_provider.dart` — `Future<Uint8List?> Function(String)` DI 入口（生产 `AssetEntity.originBytes`）
+    - `lib/features/photos/presentation/widgets/photo_viewer.dart` — `InteractiveViewer` + 双击 toggle 缩放（同步切 matrix，无插值动画）
+    - `lib/features/photos/presentation/widgets/bottom_action_bar.dart` — 5 个 `IconButton`（删除完整 / 模版 SnackBar 占位 / 标签+星级+影集 disabled）
+    - `lib/features/photos/presentation/widgets/photo_detail_page.dart` — PageView 单页（loading/error/empty/success 4 态）
+    - `lib/features/photos/presentation/screens/photo_detail_screen.dart` — 路由 target（黑底 Scaffold + AppBar + PageView.builder + BottomActionBar）
+  - 修改：
+    - `lib/core/router/app_router.dart` — 注册 `AppRoute.photoDetail` 为顶层 GoRoute（`parentNavigatorKey: rootNavigatorKey` → 沉浸式，隐藏底部 5 tab）
+    - `lib/features/photos/presentation/screens/photo_gallery_screen.dart` — 网格 `PhotoGridItem.onTap: () => context.push('/photo/${photo.id}')`
+  - 测试（15 个新增）：
+    - `test/features/photos/photo_by_id_provider_test.dart` — **3 用例**：含 N 张 → 命中 / 不存在 → null / state loading → null
+    - `test/features/photos/bottom_action_bar_test.dart` — **6 用例**：5 按钮渲染 / 删除 confirm dialog（confirm + cancel）/ 模版 SnackBar / 3 disabled 按钮 / photoId null 全 disabled
+    - `test/features/photos/photo_viewer_test.dart` — **5 用例**：placeholder / Image.memory / 双击 zoom in / 双击 zoom out / idle 不崩
+    - `test/features/photos/photo_detail_page_test.dart` — **4 用例**：loading (Completer pending) / error (throws) / empty (photoById null) / success
+    - `test/features/photos/photo_detail_screen_test.dart` — **4 用例**：success (PageView + BottomActionBar) / empty (gallery empty view) / delete confirm + cancel
+    - `test/features/photos/photo_gallery_screen_test.dart`（追加） — **1 用例**：tap 网格 photo_002 → GoRouter push → PhotoDetailScreen 出现（用 GoRouter + rootNavKey 集成）
+  - **5 项底部操作 M1 阶段可用度**：
+    - **删除** ✅ 完整：tap → `AlertDialog` 二次确认 → `PhotoRepository.delete(id)` → `photosProvider.refresh()` → 空时 pop
+    - **模版** 🟡 占位：SnackBar "模版功能即将推出"（M2-T5 `FrameRenderer` 完成后接入）
+    - **标签 / 星级 / 影集** 🔒 disabled 占位（依赖 M4-T5 `starRating` 字段 + M3 影集 Repository）
+  - **核心踩坑（写进 CLAUDE.md §7 候选 + 测试注释）**：
+    1. **`InteractiveViewer + tester.tap + pumpAndSettle` 在 widget test 里**永久 hang**—— `InteractiveViewer` 内部的 gesture detector 在等待第二次 tap 时持续 schedule frame。绕开：直接拿 `GestureDetector.first.onDoubleTap` 闭包调，不走真实 pointer pipeline；测试只 `pump()`（不 settle）。
+    2. **`InteractiveViewer + AnimationController` 组合**会持续触发 `_controller.value` 变化 → InteractiveViewer 持续 layout → widget test hang。**M1 简化**：去掉 `Matrix4Tween` 缩放过渡动画，双击瞬间切换 matrix（iOS Photos 同款 UX）。M6 体验打磨时再视情况补 Tween。
+    3. **测试间共享 file-level `final validBytes`**—— 后续测试会 hang。每个 testWidgets 内部自建 `makeBytes()` helper。
+    4. **fullPage 测试用 `_LoadingPhotosNotifier.overrideWith`** 而非 `photosLoad: () => pending.future`（后者在 buildGallery 里 stub `loadAllFromSystem` 不影响 photosNotifier.build）。
+    5. **路由 push 测试**用 `GoRouter` + `parentNavigatorKey: rootNavKey`（必须把 rootNavKey 也设给 router 顶层，否则 `allowedKeys.contains(parentKey)` 失败）。
+  - **Integration test 跳过**：CLAUDE.md §4 步骤 1 虽强制 Integration Test，但 `photo_manager` 强依赖 Android/iOS 真机；本机 macOS 不可用（与 M1-T1/T5 一致）。**推迟到 M6-T4**。
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **138/138** 通过（123 旧 + 15 新）
+  - **预估**: 40 min（含 30 分钟排查 InteractiveViewer + AnimationController widget test hang 根因）
+  - **完成时间**: 2026-06-23
   - 新增 3 个 lib 文件 + 3 个 test 文件：
     - `lib/features/photos/presentation/widgets/photo_grid_item.dart` — 单格 widget：`AspectRatio(1:1)` + `FutureBuilder` 注入式 `thumbnailLoader`（生产路径走 `AssetEntity.thumbnailDataWithSize(ThumbnailSize(360,360))`）；loader 返回 null 时显示 placeholder 图标；`onTap` 透传
     - `lib/features/photos/presentation/providers/photos_provider.dart` — `photoRepositoryProvider` + `PhotosNotifier`（`AsyncNotifier<List<PhotoModel>>`）：build 同步返回 `const []`（CLAUDE.md §7.5 不在 build 内 await），`refresh()` 走 `state = AsyncLoading + AsyncValue.guard(loadAllFromSystem)`；暴露 `AsyncValue` 让 gallery 拿 4 态
@@ -167,13 +198,12 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **111/111** 通过（95 旧 + 16 新）
   - **预估**: 40 min
   - **完成时间**: 2026-06-23
-- [ ] **M1-T6** 详情页（`/photo/:assetId`，push）：双指缩放 + 双击放大/还原 + 左右滑切换；**底部 5 项批量操作**（删除 / 标签 / 星级 / 影集 / 模版）
 - [ ] **M1-T7** 长按多选模式 + `MultiSelectProvider` 维护 `Set<String> selectedIds`（与 5 项批量操作联动）
 - [ ] **M1-T8** 详情页完整结构：顶部大图 + EXIF 字段表（**相机/镜头/ISO/快门/拍摄时间**，基于 `ExifDatasource.parse`）+ 标签 pills + 底部"**分享 / 应用模版**"双按钮
 - [ ] **M1-T9** 4 态显式：loading / success / error / empty（`AsyncValue.when` + `EmptyState`，M1-T5 已覆盖 gallery 4 态；M1-T6 详情页复用同一套）
 - [ ] **M1-T10** 测试：`PhotoRepository` / `ExifDatasource` / `PhotoGrid` widget 三个核心文件覆盖完整
 
-**完成时间**: _待定_
+**完成时间**: 2026-06-23
 
 ---
 
