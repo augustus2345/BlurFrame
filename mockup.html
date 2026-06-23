@@ -365,29 +365,58 @@
       box-shadow: 0 4px 16px rgba(79,140,255,0.4);
     }
 
-    /* Screen 12: Recently deleted banner */
-    .recent-banner {
-      margin: 8px 16px 0;
-      padding: 10px 12px;
-      background: rgba(251, 191, 36, 0.14);
-      border-radius: 8px;
+    /* Screen 12: Single-photo swipe viewer (Delete tab) */
+    .swipe-viewer {
+      flex: 1;
+      position: relative;
+      background: #000;
+      overflow: hidden;
       display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      font-size: 12px;
-      color: #92400e;
-      line-height: 1.5;
-      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
     }
-    [data-theme="dark"] .recent-banner {
-      background: rgba(251, 191, 36, 0.18);
-      color: #fbbf24;
+    .swipe-viewer__photo {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: block;
     }
-    .recent-banner__dot {
+    .swipe-viewer__hint {
+      position: absolute;
+      color: white;
+      background: rgba(0,0,0,0.55);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      letter-spacing: 0.3px;
+    }
+    .swipe-viewer__hint--left  { left: 12px;  top: 50%; transform: translateY(-50%); }
+    .swipe-viewer__hint--right { right: 12px; top: 50%; transform: translateY(-50%); }
+    .swipe-viewer__hint--up    { bottom: 24px; left: 50%; transform: translateX(-50%); }
+    .swipe-viewer__toast {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 999px;
       font-size: 13px;
-      line-height: 1.4;
-      flex-shrink: 0;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
+    .swipe-viewer__toast span { color: #fbbf24; }
 
     /* Screen 4: Swipe to delete */
     .swipe-demo {
@@ -1147,12 +1176,6 @@
                 <div class="settings-section__title">其它</div>
                 <div class="settings-group">
                   <div class="settings-row">
-                    <div class="settings-row__icon">🔔</div>
-                    <div class="settings-row__title">通知</div>
-                    <div class="settings-row__value"></div>
-                    <div class="settings-row__chev">›</div>
-                  </div>
-                  <div class="settings-row">
                     <div class="settings-row__icon">ℹ️</div>
                     <div class="settings-row__title">关于 BlurFrame</div>
                     <div class="settings-row__value">v1.0.0</div>
@@ -1188,7 +1211,7 @@
         <div class="card__caption">
           <span class="card__num">07</span>
           <div class="card__title">设置</div>
-          <p class="card__desc">占位 — 具体内容待定。下面放了几条常见的占位项：<strong>主题 / 语言 / 存储 / 导入导出 / 通知 / 关于</strong>。</p>
+          <p class="card__desc">占位 — 具体内容待定。下面放了几条常见的占位项：<strong>主题 / 语言 / 存储 / 导入导出 / 关于</strong>。</p>
         </div>
       </article>
 
@@ -1443,29 +1466,21 @@
         </div>
       </article>
 
-      <!-- ============ 12. 最近删除 ============ -->
+      <!-- ============ 12. 单图浏览（删除 tab）============ -->
       <article class="card">
         <div class="screen">
-            <div class="status-bar"><span>9:41</span><span>5G ●●● 100%</span></div>
-            <div class="app-bar">
-              <div style="width:36px"></div>
-              <div class="app-bar__title">最近删除</div>
-              <div class="app-bar__right">清空</div>
+            <div class="status-bar" style="color:white;"><span>9:41</span><span>5G ●●● 100%</span></div>
+            <div class="app-bar" style="color:white;position:absolute;top:50px;left:0;right:0;z-index:5;">
+              <div class="app-bar__back" style="color:white;">‹</div>
+              <div class="app-bar__title" style="font-size:14px;">3 / 23</div>
+              <div class="app-bar__action" style="color:white;font-size:20px;">⋯</div>
             </div>
-            <div class="recent-banner">
-              <div class="recent-banner__dot">⏱</div>
-              <div>30 天后将永久删除。可在到期前"恢复"或"永久删除"。</div>
-            </div>
-            <div class="photo-grid" style="margin-top:4px;">
-              <div class="photo-cell" style="opacity:0.55;"><div class="ph ph-1"></div></div>
-              <div class="photo-cell" style="opacity:0.55;"><div class="ph ph-2"></div></div>
-              <div class="photo-cell" style="opacity:0.55;"><div class="ph ph-3"></div></div>
-              <div class="photo-cell" style="opacity:0.55;"><div class="ph ph-4"></div></div>
-              <div class="photo-cell" style="opacity:0.55;"><div class="ph ph-5"></div></div>
-              <div class="photo-cell" style="opacity:0.55;"><div class="ph ph-6"></div></div>
-              <div class="photo-cell" style="opacity:0.55;"><div class="ph ph-7"></div></div>
-              <div class="photo-cell" style="opacity:0.55;"><div class="ph ph-8"></div></div>
-              <div class="photo-cell" style="opacity:0.55;"><div class="ph ph-9"></div></div>
+            <div class="swipe-viewer">
+              <div class="ph ph-1 swipe-viewer__photo"></div>
+              <div class="swipe-viewer__hint swipe-viewer__hint--left">‹ 上一张</div>
+              <div class="swipe-viewer__hint swipe-viewer__hint--right">下一张 ›</div>
+              <div class="swipe-viewer__hint swipe-viewer__hint--up">↑ 上滑删除</div>
+              <div class="swipe-viewer__toast">已删除 1 张 · <span>撤销</span></div>
             </div>
             <div class="tab-bar">
               <div class="tab-bar__item">
@@ -1492,8 +1507,8 @@
           </div>
         <div class="card__caption">
           <span class="card__num">12</span>
-          <div class="card__title">最近删除</div>
-          <p class="card__desc">"删除"标签页的内容。<strong>30 天保留期</strong>,到期自动永久删除。顶栏"清空"一键永久删除全部;进入选择模式后提供"恢复"和"永久删除"操作。</p>
+          <div class="card__title">单图浏览（删除 tab）</div>
+          <p class="card__desc">"删除"标签页的内容。<strong>单张大图全屏</strong>展示。向上滑删除当前图（带可撤销 toast）；向左滑上一张、向右滑下一张。顶栏位置计数 <code>3 / 23</code>，右上 <code>⋯</code> 可退出或批量操作。</p>
         </div>
       </article>
 
