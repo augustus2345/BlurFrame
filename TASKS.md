@@ -136,7 +136,19 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **78/78**（64 旧 + 6 datasource + 8 repository load）
   - **预估**: 35 min
   - **完成时间**: 2026-06-22
-- [ ] **M1-T4** `exif` 包集成：`ExifDatasource.parse(AssetEntity) → ExifSummary`
+- [x] **M1-T4** `exif` 包集成：`ExifDatasource.parse(AssetEntity) → ExifSummary`
+  - 新增 `lib/features/photos/data/datasources/exif_datasource.dart`：
+    - `ExifSummary` 不可变值对象，7 字段（`make`/`model`/`dateTimeOriginal`/`fNumber`/`exposureTime`/`iso`/`focalLength`）+ `isEmpty` + `empty` 常量 + `==`/`hashCode` + `@visibleForTesting fromTags(Map<String, IfdTag>)` factory
+    - `ExifDatasource` 类，构造函数接受 `readBytes` / `parseExif` 两个函数注入点（生产路径走 `asset.originBytes` + `readExifFromBytes`）
+    - `parse(AssetEntity)` 主入口 + `parseBytes(Uint8List)` 剥离平台子入口
+    - 失败语义：readBytes 抛错 / 返回 null / parseExif 抛错 → 全部返回 `ExifSummary.empty`（详情页 UI 不崩）
+  - **关键设计决策（与原 PLAN 假设不同）**：`exif` 3.3.0 API 实情是 `readExifFromBytes(List<int>) → Future<Map<String, IfdTag>>`，**不是** 类型化 getter；tag 名是字符串 key（`'Image Make'` / `'EXIF DateTimeOriginal'` 等），值是 `IfdValues` 子类（`IfdInts` / `IfdRatios` / `IfdBytes` / `IfdNone`）；`DateTimeOriginal` 是 19 字节 ASCII，不是 `DateTime`
+  - **关键坑（写进 fromTags 注释）**：`IfdNone.firstAsInt()` 返回 0 而非抛错 — `fromTags` 必须用类型守卫（`v is IfdInts && v.ints.isNotEmpty`）拒绝空集合，否则缺失的 ISO 会被误读为 0
+  - **集成边界**：EXIF **不进 Hive**（不动 `PhotoModel`，HiveField 0–6 已满），由 M1-T8 详情页落地时实时调用 `parse(asset)`
+  - 测试 `test/features/photos/exif_datasource_test.dart`：**17 用例** — `fromTags` × 12（empty / Make trim+empty / DateTimeOriginal happy+empty+malformed / FNumber / ExposureTime / ISO / FocalLength / IfdNone 陷阱 / mixed）/ `parseBytes` × 2 / `parse` × 3
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **95/95** 通过（78 旧 + 17 新）
+  - **预估**: 25 min
+  - **完成时间**: 2026-06-23
 - [ ] **M1-T5** 3 列网格 + 缩略图懒加载
 - [ ] **M1-T6** 详情页：双指缩放、双击放大、左右滑切换
 - [ ] **M1-T7** 长按多选模式 + Provider 维护 `Set<String> selectedIds`

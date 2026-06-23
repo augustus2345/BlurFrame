@@ -197,6 +197,21 @@ flutter test integration_test -d macos
   ```
 - **适用**: 需要在 widget mount 后立刻触发的 async 副作用（读权限、读网络、读 Hive、订阅流）
 
+### 7.10 `exif` 3.3.0 没有类型化 getter，tag 名是字符串 key
+- **症状**: 按 `ExifData.ifd0.make` / `ExifIfdData.dateTimeOriginal` 写代码编译失败 → `The getter 'ifd0' isn't defined for type 'ExifData'`
+- **根因**: `exif: ^3.3.0` 的 API 是**平铺 map**，不是类型化对象：
+  - `readExifFromBytes(List<int> bytes) → Future<Map<String, IfdTag>>`（返回 `Future<Map>`，不是 `ExifData` 实例）
+  - map 的 key 是 `"<IFD> <TagName>"` 字符串（`'Image Make'` / `'EXIF DateTimeOriginal'` 等）
+  - 每个 `IfdTag.values` 是 `IfdValues` 子类：`IfdInts` / `IfdRatios`（含 `Ratio(num, den)`）/ `IfdBytes` / `IfdNone`
+  - `DateTimeOriginal` 是 **19 字节 ASCII** `"YYYY:MM:DD HH:MM:SS\0"`，**不是** `DateTime`
+- **修法**:
+  1. 用 `readExifFromBytes(bytes)` 拿到 `Map<String, IfdTag>`
+  2. 按字符串 key 取字段：`tags['Image Make']` / `tags['EXIF DateTimeOriginal']`
+  3. 用 `is IfdRatios` / `is IfdInts` / `is IfdBytes` 做类型守卫
+  4. DateTimeOriginal：`String.fromCharCodes(bytes.sublist(0, 19))` + `DateFormat('yyyy:MM:dd HH:mm:ss').tryParse(...)`
+  5. **`IfdNone` 陷阱**：`IfdNone.firstAsInt() == 0`（不是抛错），必须用 `is IfdInts && v.ints.isNotEmpty` 守卫，否则缺失 ISO 会被读成 0
+- **适用**: 任何 `exif` 3.x 集成；写之前先看本地的 `~/.pub-cache/hosted/pub.dev/exif-3.3.0/lib/src/exif_types.dart` 确认类型结构
+
 ### 7.5 Riverpod `Notifier.build()` 必须是同步
 - **症状**: 想在 `Notifier.build()` 里 `await repo.current()` 编译失败
 - **根因**: `Notifier<T>.build()` 签名是 `T build()`，同步；想用 `await` 必须升 `AsyncNotifier`，且 `AsyncNotifier` 仍不能在 `build` 内 await（`build` 是同步的初始化钩子，真正的 await 走 `future` / `AsyncValue.guard`）

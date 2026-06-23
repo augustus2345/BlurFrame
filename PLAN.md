@@ -10,7 +10,7 @@
 - **PRD**: ✅ v0.1（[docs/prd/PRD.md](./docs/prd/PRD.md)）
 - **工程骨架**: ✅ 主题 / 路由 / Shell / Hive 启动 / 设置服务已就位
 - **M0**: ✅ 基础完成（测试 + 文档注释 + 依赖检查 + registerAdapters 占位 + `flutter run` 推至 M1）
-- **M1**: 🟡 进行中（T1 权限引导已完成；T2-T10 占位）
+- **M1**: 🟡 进行中（T1 权限引导 / T2 PhotoModel / T3 loadAllFromSystem / **T4 exif 集成**已完成；T5-T10 占位）
 - **M2–M5**: ⬜ 全部为占位 EmptyState，待实现
 - **M6**: ⬜ 打磨 + Integration test
 
@@ -67,7 +67,7 @@ flutter run
 
 ---
 
-### M1 — 照片库 🟡（2026-06-22 开始，T1 完成）
+### M1 — 照片库 🟡（2026-06-22 开始，T1–T4 完成）
 
 **目标**: 看到系统照片、双指缩放、长按多选、详情页 EXIF。
 
