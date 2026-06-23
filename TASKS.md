@@ -149,7 +149,24 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **95/95** 通过（78 旧 + 17 新）
   - **预估**: 25 min
   - **完成时间**: 2026-06-23
-- [ ] **M1-T5** 3 列网格 + 缩略图懒加载
+- [x] **M1-T5** 3 列网格 + 缩略图懒加载
+  - 新增 3 个 lib 文件 + 3 个 test 文件：
+    - `lib/features/photos/presentation/widgets/photo_grid_item.dart` — 单格 widget：`AspectRatio(1:1)` + `FutureBuilder` 注入式 `thumbnailLoader`（生产路径走 `AssetEntity.thumbnailDataWithSize(ThumbnailSize(360,360))`）；loader 返回 null 时显示 placeholder 图标；`onTap` 透传
+    - `lib/features/photos/presentation/providers/photos_provider.dart` — `photoRepositoryProvider` + `PhotosNotifier`（`AsyncNotifier<List<PhotoModel>>`）：build 同步返回 `const []`（CLAUDE.md §7.5 不在 build 内 await），`refresh()` 走 `state = AsyncLoading + AsyncValue.guard(loadAllFromSystem)`；暴露 `AsyncValue` 让 gallery 拿 4 态
+    - `lib/features/photos/presentation/providers/asset_thumbnail_loader_provider.dart` — `Provider<Future<Uint8List?> Function(String assetId)>`：生产路径 `AssetEntity.fromId` + `thumbnailDataWithSize(360,360)`，test override 返回 stub bytes
+    - `lib/features/photos/presentation/screens/photo_gallery_screen.dart` — 改造：删除 `_GalleryPlaceholder`；`initState` 同一 post-frame 里既刷 permission 又刷 photos（授权通过立即看到网格）；`status.isUsable` 分派 `_GalleryBody` → `AsyncValue.when(loading, error, data)`；error 态带"重试"按钮；data 空时显示 EmptyState；data 非空时 3 列 `GridView.builder` + `PhotoGridItem`
+  - 测试（16 个新增）：
+    - `test/features/photos/photo_grid_item_test.dart` — **6 用例**：tap 回调 / 无 onTap 不抛错 / loading 占位 / null loader 占位 / bytes 渲染 Image.memory / 1:1 比例
+    - `test/features/photos/photos_provider_test.dart` — **5 用例**：build 初始空 + 不触发 load / refresh 成功 / refresh 错误 / 多次 refresh 幂等 / error 后 refresh 恢复
+    - `test/features/photos/photo_gallery_screen_test.dart` — 改写为 **11 用例**：3 权限分派 + 2 启动 refresh（photos + permission 各自一次）+ 6 网格 4 态（loading / error / empty / success / limited / retry 触发的二次 refresh）
+  - **踩坑（写进测试注释）**：
+    1. **`Image.memory` codec 不接受随便字节** — 测试用合法 1×1 PNG（base64 解码）；手搓字节容易写错
+    2. **`pumpAndSettle` + CircularProgressIndicator 永动** — loading 测试用 `pump()`（不是 settle），否则 spinner 动画永远停不下来；其他 4 态测试用 `pumpAndSettle` 没问题
+    3. **loading 态需要 override `refresh()`** — 否则 `initState` 的 post-frame 调 `refresh()` → mock repo 立刻返回空列表 → state 被覆盖成 `AsyncData([])`；用 `_LoadingPhotosNotifier` override `build()` + `refresh()` 来保持 `AsyncLoading`
+    4. **mocktail `ThumbnailSize` 没有 `.square()` 工厂** — 用 `ThumbnailSize(360, 360)` 显式
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **111/111** 通过（95 旧 + 16 新）
+  - **预估**: 40 min
+  - **完成时间**: 2026-06-23
 - [ ] **M1-T6** 详情页：双指缩放、双击放大、左右滑切换
 - [ ] **M1-T7** 长按多选模式 + Provider 维护 `Set<String> selectedIds`
 - [ ] **M1-T8** 详情页底部 EXIF 展示（拍摄时间、机型、镜头、ISO 等）

@@ -248,3 +248,66 @@ flutter test integration_test -d macos
   3. 永远别尝试 `const DateTime(...)` — 编译期根本算不出来
 - **适用**: 所有"测试夹具要复用 `DateTime.now()` / `DateTime.utc(...)` 引用"的场景；以及任何"用 `final` 变量做 const 列表元素"的写法
 
+### 7.11 `pumpAndSettle` + 永动 widget（spinner / 动画）= 永远 timeout
+- **症状**: 测试渲染 loading 态的 `CircularProgressIndicator`（或 `LinearProgressIndicator` / 任何 `AnimationController` 驱动的 widget）时，`pumpAndSettle()` 永远不返回 → 测试 timeout
+- **根因**: spinner 用 `AnimationController` 持续驱动 frame 调度；`pumpAndSettle` 一直等到"没有待处理帧"，而动画永远有新帧
+- **修法**: 测 loading 态用 `tester.pump()`（单帧）而不是 `pumpAndSettle()`：
+  ```dart
+  await tester.pumpWidget(...);
+  await tester.pump(); // 只跑一帧
+  expect(find.byKey(Key('loading_indicator')), findsOneWidget);
+  ```
+- **适用**: 任何"测试 widget 在 loading / 动画中分支"的场景；4 态（loading / error / empty / success）测试里 loading 一定要用 `pump()`
+
+### 7.12 `AsyncNotifier` testing 加载中分支：override `refresh()` 也得改
+- **症状**: widget 测试想观察 `AsyncLoading` 态，stub `repo.loadAllFromSystem()` 返回永不 resolve 的 `pending.future`，但 widget 一会儿就显示 `AsyncData([])` — 看到的不是 loading 而是 empty
+- **根因**: `AsyncNotifier` 暴露的方法（如 `refresh()`）仍然会跑。`initState` post-frame 调 `refresh()` → 内部 `state = AsyncValue.loading()` → `state = await AsyncValue.guard(loadAllFromSystem)`；如果 mock repo 还是同步返回了某个值（即使你换了 stub，setUp 残留 / mocktail 链式 stub 覆盖不全），state 会被覆盖成 `AsyncData(...)`
+- **修法**: 测试"loading 态"用专用 Notifier 子类 + override `build()` 和 `refresh()`：
+  ```dart
+  class _LoadingPhotosNotifier extends PhotosNotifier {
+    @override
+    Future<List<T>> build() => Completer<List<T>>().future; // 永不 resolve
+    @override
+    Future<void> refresh() async {} // no-op：不让 initState 把它覆盖
+  }
+  // ProviderScope override
+  photosProvider.overrideWith(_LoadingPhotosNotifier.new)
+  ```
+- **适用**: 所有 4 态（loading / error / empty / success）widget 测试中的 loading 分支；同样适合 Stream / Future provider
+
+### 7.13 `Image.memory` 测试用合法字节 — 手搓的 1×1 PNG（base64 解码）
+- **症状**: widget 测试里把 `Uint8List(0)` 或 `Uint8List.fromList([1,2,3,4])` 喂给 `Image.memory` → codec 抛 `Invalid image data`，测试 fail（即使断言仍通过，error log 污染输出 + 部分场景 tap 后异常会冒到 assert）
+- **根因**: `Image.memory` 调 `painting.instantiateImageCodecWithSize` 解码真实图像字节；随便字节不是合法 PNG/JPEG
+- **修法**: 测试 fixture 用一个真实的 1×1 透明 PNG（base64 编码）→ `base64.decode(...)`：
+  ```dart
+  // 1×1 透明 PNG，base64 编码
+  final tinyPng = Uint8List.fromList(base64.decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==',
+  ));
+  ```
+- **适用**: 所有要测 `Image.memory` / `Image` widget 加载流程的 widget 测试；如果有 `image` 包依赖，也可以 `image.Image(width:1, height:1)` → `encodePng(...)` 生成真字节
+
+### 7.14 测试照片 fixture：`TestPhotoFixtures.photos` + `thumbnailMap`
+- **场景**: 想让 widget 测试看到"真实照片"（每张不同色、确定性、可断言），又不想依赖真实平台 / 文件系统
+- **做法**: `test/test_utils/test_photo_fixtures.dart`（M1-T5 加的）
+  - `TestPhotoFixtures.photos(count: N)` → `List<PhotoModel>`，id 形如 `'photo_NNN'`
+  - `TestPhotoFixtures.thumbnailMap(count: N)` → `Map<String, Uint8List>`，每张一张 4×4 纯色 PNG（HSV 色环等分）
+  - 配套用 `image` 包生成字节（pubspec 已声明 `image: ^4.2.0`）
+- **关键 API 坑（写进 §7.14 而不是代码注释，避免被人改掉）**:
+  1. `img.Image.clear(color)` 直接调实例方法（不是 `img.fill(image, color: ...)`）— image 4.x 把 fill 抽到 `draw/fill.dart` 但默认不导出
+  2. `img.encodePng(image)` 返回 `List<int>`，要 `Uint8List.fromList(...)` 转成 `Uint8List` 才能喂 `Image.memory`
+  3. HSV→RGB 公式里 `c * (1 - ((h / 60) % 2 - 1).abs())` 的括号顺序错了颜色全黑
+- **测试里用法**:
+  ```dart
+  setUpAll(() async {
+    photos = TestPhotoFixtures.photos(count: 100);
+    thumbs = await TestPhotoFixtures.thumbnailMap(count: 100);
+  });
+
+  assetThumbnailLoaderProvider.overrideWithValue(
+    (String id) async => thumbs[id],
+  );
+  ```
+- **GridView 懒加载断言技巧**: 不要 `expect(find.byType(Image), findsNWidgets(N))` —— viewport 外还没构建；改用 `find.byKey(Key('photo_grid_item_photo_042'))` 精确断言；或 `tester.drag(...)` 滚到对应位置再找
+- **100 张首次渲染性能 sanity**: 用 `Stopwatch` 测首次 `pumpAndSettle` 时长，断言 `< 1000ms`；M6-T3 性能压测会再缩紧这个预算
+- **适用**: 任何"相册 / 列表 / grid 涉及多 item" 的 widget 测试；M2-T3 模板渲染 / M3 影集封面 / M4 标签 chip 列表都能复用
