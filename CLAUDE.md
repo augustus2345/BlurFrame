@@ -151,3 +151,85 @@ flutter test integration_test -d macos
 ### 6.3 Riverpod 代码生成
 - Provider 使用 `riverpod_generator` 代码生成，文件包含 `part 'xxx.g.dart';`
 - 修改 Provider 后运行：`dart run build_runner build`
+
+---
+
+## 7 踩坑记录（Pitfalls）
+
+> 记录本项目踩过的坑，方便下次遇到同样症状时快速对照。
+> 格式：**症状 → 根因 → 修法 → 适用**。
+> 维护原则：发现新坑就加一条；修法被新方案替代时打 ❌ 并附替代方案。
+
+### 7.1 Hive `registerAdapter` 跨测试文件不可重入
+- **症状**: 测试套件跑两个文件时，第二个文件的 `initForTest` 抛 `HiveError: Adapter for typeId 1 is already registered`，连带 `_completeInit` 中断 → `Hive.box(name)` 报 box 未开
+- **根因**: Hive 全局注册表 `Hive._typeAdapters` 在测试间共享；`Hive.close()` + `resetForTest()` **只清 box 和 `_initialized` 标志，不清适配器**
+- **修法**: `HiveService.registerAdapters()` 改为幂等，**每个 adapter 注册前加 `isAdapterRegistered(N)` 守卫**
+  ```dart
+  if (!Hive.isAdapterRegistered(1)) {
+    Hive.registerAdapter(PhotoModelAdapter());
+  }
+  ```
+- **适用**: 所有 `registerAdapters` 路径；任何会跨测试 / 热重载复用的初始化点都该幂等
+
+### 7.2 mocktail `Box.clear()` 返回类型不匹配
+- **症状**: `when(() => box.clear()).thenAnswer((_) async {})` 报 `body_might_complete_normally`（期望 `Future<int>`，拿到 `Future<void>`）
+- **根因**: `Box.clear()` 返回 `Future<int>`（被删条数），不是 `Future<void>`。同样 `Box.compact()`
+- **修法**: `thenAnswer((_) async => 0)`
+- **适用**: 所有返回 `Future<int>` 的 `Box` 方法；写新 mock 时先查 Hive 源码确认返回类型
+
+### 7.3 Dart flow analysis 与 `late` + `setUp`
+- **症状**: 顶层声明 `late int callCount;`，`setUp` 里赋值 → 报 `non-nullable local variable 'callCount' must be assigned before it can be used`
+- **根因**: Dart 静态分析保守地认为 `setUp` 可能抛，导致编译器认为变量可能未被赋值（即使人眼看 `setUp` 总会跑）
+- **修法（任一）**:
+  1. **inline 初值**：声明时给初值（去掉 `late`），`setUp` 里再覆盖
+  2. **包对象**：`class _Scratch { int callCount = 0; }` 创建一次实例，Dart 看到字段有初值就满意
+- **适用**: 测试夹具里多个 mutable scratch 状态变量时优先选方案 2
+
+### 7.4 `ConsumerStatefulWidget.initState` 不能直接调 `ref.read` 触发的异步
+- **症状**: `initState` 里 `ref.read(notifier).asyncMethod()` 后续断言不通过 / Riverpod 报 `tried to use ref during build`
+- **根因**: 初始化阶段 widget 树未完成，async 副作用调度时机不稳；Riverpod 2.x 拒绝在 build 阶段被外部 mutate
+- **修法**: 推后到 `addPostFrameCallback`，并加 `mounted` 守卫：
+  ```dart
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!mounted) return;
+    ref.read(notifier.notifier).refresh();
+  });
+  ```
+- **适用**: 需要在 widget mount 后立刻触发的 async 副作用（读权限、读网络、读 Hive、订阅流）
+
+### 7.5 Riverpod `Notifier.build()` 必须是同步
+- **症状**: 想在 `Notifier.build()` 里 `await repo.current()` 编译失败
+- **根因**: `Notifier<T>.build()` 签名是 `T build()`，同步；想用 `await` 必须升 `AsyncNotifier`，且 `AsyncNotifier` 仍不能在 `build` 内 await（`build` 是同步的初始化钩子，真正的 await 走 `future` / `AsyncValue.guard`）
+- **修法**: `build()` 返回**默认值**（`null` / 占位 enum），异步初始化在外部触发 `refresh` / 第一次 `notifier.method()` 时拉
+- **适用**: 所有 Riverpod 2.x `Notifier` / `AsyncNotifier`；同理 `build()` 内不应做 IO
+
+### 7.6 `Completer` 测试的 mock 完整性（中间态断言）
+- **症状**: 测试用 `Completer<PermissionState>` 控制 `request` 时机，中间态断言通过，但 `completer.complete()` 后最终断言失败，提示 `type 'Null' is not a subtype of type 'Future<void>'`
+- **根因**: 通过自定义闭包绕过 `result` 路径时，await 之后还会触发的副作用（`markFirstLaunchDone` → `box.put`）**仍会跑**，但 mock 没设
+- **修法**: 写带 `Completer` 的测试时，先在脑里走一遍"completer 完成后还会触发什么副作用"，提前 mock；不要只 mock 中间态涉及的函数
+- **适用**: 所有"中间态断言 + 最终态断言"的两段式测试
+
+### 7.7 `PhotoModel` 等 Hive model 的 HiveField 编号不可重用
+- **症状**: 给已有 model 加新字段时，用了旧编号 → 旧 box 数据反序列化时新字段全 `null`、旧字段被覆盖
+- **根因**: Hive 用 `fieldId → value` map 持久化，重用编号会让旧值被当成新字段读
+- **修法**:
+  1. 新字段**只能往下编**（0,1,2,... 顺序追加）
+  2. 删字段时**保留编号空位**，注释标注 `// removed: 字段名，曾经是 XXX`
+  3. HiveField 编号变更属于**破坏性 schema 变更**，需要走 `Box.deleteFromDisk` + 数据迁移
+- **适用**: 所有 `@HiveType` 模型的字段演化管理
+
+### 7.8 `photo_manager` 的 `getPermissionState` 必须传 `requestOption`
+- **症状**: `PhotoManager.getPermissionState` 不传参数编译失败 / 传 `null` 报 `NoSuchMethodError`
+- **根因**: 3.x 起 `getPermissionState({required PermissionRequestOption requestOption})` 把 `requestOption` 标成 `required`
+- **修法**: 显式传默认值 `PhotoManager.getPermissionState(requestOption: const PermissionRequestOption())`
+- **适用**: photo_manager 3.x 的所有权限相关 API；查 changelog 后再升级
+
+### 7.9 `DateTime` 没有 const 构造 → 别往 `const List` 里塞
+- **症状**: `final dt = DateTime.utc(2024, 6, 20);` 后写 `const <SystemPhoto>[SystemPhoto(takenAt: dt)]` 报 `non_constant_list_element` / `invalid_constant`
+- **根因**: `DateTime` 的 `utc` / 本地构造都不是 const 构造（运行时计算 unix 时间戳），整条 const 推导失败
+- **修法**:
+  1. 去掉外层 `const`：`<SystemPhoto>[SystemPhoto(takenAt: dt)]`（最常见）
+  2. 列表内用字面量的话，给内层加 `const SystemPhoto(...)`，外层允许非 const
+  3. 永远别尝试 `const DateTime(...)` — 编译期根本算不出来
+- **适用**: 所有"测试夹具要复用 `DateTime.now()` / `DateTime.utc(...)` 引用"的场景；以及任何"用 `final` 变量做 const 列表元素"的写法
+
