@@ -198,7 +198,24 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **111/111** 通过（95 旧 + 16 新）
   - **预估**: 40 min
   - **完成时间**: 2026-06-23
-- [ ] **M1-T7** 长按多选模式 + `MultiSelectProvider` 维护 `Set<String> selectedIds`（与 5 项批量操作联动）
+- [x] **M1-T7** 长按多选模式 + `MultiSelectProvider` 维护 `Set<String> selectedIds`（与 5 项批量操作联动）
+  - 新增 2 个 lib 文件 + 3 个 test 文件：
+    - `lib/features/photos/presentation/providers/multi_select_provider.dart` — `MultiSelectState`（selectedIds / isMultiSelectMode）+ `MultiSelectNotifier`（toggle / enterMultiSelectMode / exitMultiSelectMode / selectAll / clearSelection / isAllSelected）
+    - `lib/features/photos/presentation/widgets/multi_select_app_bar.dart` — 多选模式顶部栏：选中数量 + 全选/取消全选 + 5 项批量操作按钮（删除 / 标签 / 星级 / 影集 / 模版）
+  - 修改：
+    - `lib/features/photos/presentation/widgets/photo_grid_item.dart` — 新增 `onLongPress` / `isSelected` 参数；选中时显示半透明遮罩 + 白色勾选圆圈
+    - `lib/features/photos/presentation/screens/photo_gallery_screen.dart` — 多选模式下切换 AppBar；`_PhotoGrid` 支持多选态（tap toggle / longPress 进入）；批量删除实现二次确认
+  - 测试（10 个新增）：
+    - `test/features/photos/multi_select_provider_test.dart` — **9 用例**：初始空选集 / toggle 添加+移除 / selectAll / clearSelection / exitMultiSelectMode / enterMultiSelectMode / isAllSelected 全中+部分中
+    - `test/features/photos/multi_select_app_bar_test.dart` — **7 用例**：选中数量显示 / 全选文字切换 / 关闭回调 / 全选回调 / 5 操作按钮存在 / 未实现操作 SnackBar
+    - `test/features/photos/photo_grid_item_test.dart`（追加） — **4 用例**：isSelected 显示勾选 / isSelected=false 隐藏勾选 / onLongPress 触发 / 无 onLongPress 不抛错
+    - `test/features/photos/photo_gallery_screen_test.dart`（追加） — **6 用例**：longPress 进入多选 / tap toggle 选择 / 全选 / 取消全选 / 关闭退出 / 批量删除确认弹窗
+  - **5 项批量操作当前可用度**：
+    - **删除** ✅ 完整：多选 → tap 删除图标 → AlertDialog 确认 → `PhotoRepository.delete` 逐个删除 → 退出多选 + 刷新
+    - **标签 / 星级 / 影集 / 模版** 🟡 占位：SnackBar "XX 功能即将推出"
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **148/148** 通过（138 旧 + 10 新）
+  - **预估**: 40 min
+  - **完成时间**: 2026-06-26
 - [ ] **M1-T8** 详情页完整结构：顶部大图 + EXIF 字段表（**相机/镜头/ISO/快门/拍摄时间**，基于 `ExifDatasource.parse`）+ 标签 pills + 底部"**分享 / 应用模版**"双按钮
 - [ ] **M1-T9** 4 态显式：loading / success / error / empty（`AsyncValue.when` + `EmptyState`，M1-T5 已覆盖 gallery 4 态；M1-T6 详情页复用同一套）
 - [ ] **M1-T10** 测试：`PhotoRepository` / `ExifDatasource` / `PhotoGrid` widget 三个核心文件覆盖完整

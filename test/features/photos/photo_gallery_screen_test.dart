@@ -355,6 +355,167 @@ void main() {
       );
     });
   });
+
+  group('PhotoGalleryScreen — multi-select mode (M1-T7)', () {
+    testWidgets('long press enters multi-select mode', (tester) async {
+      final populatedPhotos = TestPhotoFixtures.photos(count: 5);
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => populatedPhotos);
+
+      await tester.pumpWidget(
+        buildGallery(
+          initialState: PermissionState.authorized,
+          photosLoad: () async => populatedPhotos,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按第一张照片
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+
+      // 应该显示 MultiSelectAppBar
+      expect(find.text('1 项已选中'), findsOneWidget);
+      // 选中项应该显示勾选标记
+      expect(find.byIcon(Icons.check), findsOneWidget);
+    });
+
+    testWidgets('tap in multi-select mode toggles selection', (tester) async {
+      final populatedPhotos = TestPhotoFixtures.photos(count: 5);
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => populatedPhotos);
+
+      await tester.pumpWidget(
+        buildGallery(
+          initialState: PermissionState.authorized,
+          photosLoad: () async => populatedPhotos,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按进入多选模式
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+      expect(find.text('1 项已选中'), findsOneWidget);
+
+      // 点击另一张照片选中它
+      await tester.tap(find.byKey(const Key('photo_grid_item_photo_001')));
+      await tester.pump();
+      expect(find.text('2 项已选中'), findsOneWidget);
+
+      // 再次点击取消选中
+      await tester.tap(find.byKey(const Key('photo_grid_item_photo_001')));
+      await tester.pump();
+      expect(find.text('1 项已选中'), findsOneWidget);
+    });
+
+    testWidgets('全选按钮选中所有照片', (tester) async {
+      final populatedPhotos = TestPhotoFixtures.photos(count: 5);
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => populatedPhotos);
+
+      await tester.pumpWidget(
+        buildGallery(
+          initialState: PermissionState.authorized,
+          photosLoad: () async => populatedPhotos,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按进入多选模式
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+
+      // 点击全选
+      await tester.tap(find.text('全选'));
+      await tester.pump();
+
+      expect(find.text('5 项已选中'), findsOneWidget);
+      expect(find.text('取消全选'), findsOneWidget);
+    });
+
+    testWidgets('取消全选按钮清空选集', (tester) async {
+      final populatedPhotos = TestPhotoFixtures.photos(count: 5);
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => populatedPhotos);
+
+      await tester.pumpWidget(
+        buildGallery(
+          initialState: PermissionState.authorized,
+          photosLoad: () async => populatedPhotos,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按进入多选模式并全选
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+      await tester.tap(find.text('全选'));
+      await tester.pump();
+      expect(find.text('5 项已选中'), findsOneWidget);
+
+      // 点击取消全选
+      await tester.tap(find.text('取消全选'));
+      await tester.pump();
+
+      expect(find.text('0 项已选中'), findsOneWidget);
+      expect(find.text('全选'), findsOneWidget);
+    });
+
+    testWidgets('关闭按钮退出多选模式', (tester) async {
+      final populatedPhotos = TestPhotoFixtures.photos(count: 5);
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => populatedPhotos);
+
+      await tester.pumpWidget(
+        buildGallery(
+          initialState: PermissionState.authorized,
+          photosLoad: () async => populatedPhotos,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按进入多选模式
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+      expect(find.text('1 项已选中'), findsOneWidget);
+
+      // 点击关闭
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+
+      // 应该回到普通 AppBar
+      expect(find.text('相册'), findsOneWidget);
+      // 不再有勾选标记
+      expect(find.byIcon(Icons.check), findsNothing);
+    });
+
+    testWidgets('批量删除按钮显示确认对话框', (tester) async {
+      final populatedPhotos = TestPhotoFixtures.photos(count: 5);
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => populatedPhotos);
+
+      await tester.pumpWidget(
+        buildGallery(
+          initialState: PermissionState.authorized,
+          photosLoad: () async => populatedPhotos,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按进入多选模式并选中一项
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+
+      // 点击删除按钮
+      await tester.tap(find.byKey(const Key('multi_select_delete')));
+      await tester.pump();
+
+      // 确认对话框应该出现
+      expect(find.text('确认删除'), findsOneWidget);
+      expect(find.text('确定要删除选中的 1 张照片吗？'), findsOneWidget);
+    });
+  });
 }
 
 /// Test-only [PhotosNotifier] whose `build()` never resolves — keeps state at

@@ -6,8 +6,10 @@ import '../../../../shared/widgets/empty_state.dart';
 import '../../data/models/photo_model.dart';
 import '../../data/photo_permission_status.dart';
 import '../providers/asset_thumbnail_loader_provider.dart';
+import '../providers/multi_select_provider.dart';
 import '../providers/photo_permission_provider.dart';
 import '../providers/photos_provider.dart';
+import '../widgets/multi_select_app_bar.dart';
 import '../widgets/photo_grid_item.dart';
 import 'permission_request_screen.dart';
 
@@ -54,22 +56,76 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
   Widget build(BuildContext context) {
     final status = ref.watch(photoPermissionProvider);
     final permNotifier = ref.read(photoPermissionProvider.notifier);
+    final multiSelectState = ref.watch(multiSelectProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('相册'),
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.cleaning_services_outlined),
-            tooltip: '清理',
-            onPressed: () {
-              // TODO(M5): navigate to /cleanup — single-photo cleanup mode.
-            },
+      appBar: multiSelectState.isMultiSelectMode
+          ? MultiSelectAppBar(
+              selectedCount: multiSelectState.selectedIds.length,
+              totalCount: ref.watch(photosProvider).valueOrNull?.length ?? 0,
+              onClose: () =>
+                  ref.read(multiSelectProvider.notifier).exitMultiSelectMode(),
+              onSelectAll: () {
+                final photos = ref.read(photosProvider).valueOrNull ?? [];
+                final notifier = ref.read(multiSelectProvider.notifier);
+                if (notifier.isAllSelected(photos.map((p) => p.id).toSet())) {
+                  notifier.clearSelection();
+                } else {
+                  notifier.selectAll(photos.map((p) => p.id).toSet());
+                }
+              },
+              onDelete: () => _showDeleteConfirmation(context, ref),
+            )
+          : AppBar(
+              title: const Text('相册'),
+              actions: <Widget>[
+                IconButton(
+                  icon: const Icon(Icons.cleaning_services_outlined),
+                  tooltip: '清理',
+                  onPressed: () {
+                    // TODO(M5): navigate to /cleanup — single-photo cleanup mode.
+                  },
+                ),
+              ],
+            ),
+      body: _buildBody(status, permNotifier),
+    );
+  }
+
+  /// 批量删除确认弹窗。
+  Future<void> _showDeleteConfirmation(
+      BuildContext context, WidgetRef ref) async {
+    final selectedIds = ref.read(multiSelectProvider).selectedIds;
+    if (selectedIds.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除选中的 ${selectedIds.length} 张照片吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('删除'),
           ),
         ],
       ),
-      body: _buildBody(status, permNotifier),
     );
+
+    if (confirmed == true && context.mounted) {
+      // 删除操作
+      final photoRepo = ref.read(photoRepositoryProvider);
+      for (final id in selectedIds) {
+        await photoRepo.delete(id);
+      }
+      // 退出多选模式并刷新列表
+      ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
+      ref.read(photosProvider.notifier).refresh();
+    }
   }
 
   /// 权限分派：usable → 4 态网格；其余 → 引导屏。
@@ -149,6 +205,11 @@ class _GalleryError extends StatelessWidget {
 ///
 /// 单独成 widget 而不是在 `_GalleryBody` 内 inline，便于 widget 测试用 `Key`
 /// 锁定断言点。
+///
+/// 多选模式（M1-T7）：
+/// - watch [multiSelectProvider] 获取当前选中的 ID 集合
+/// - [onTap] 在多选模式下 toggle 选择，否则跳详情页
+/// - [onLongPress] 进入多选模式并选中当前项
 class _PhotoGrid extends ConsumerWidget {
   const _PhotoGrid({required this.photos});
 
@@ -157,6 +218,10 @@ class _PhotoGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final thumbnailLoader = ref.watch(assetThumbnailLoaderProvider);
+    final multiSelectState = ref.watch(multiSelectProvider);
+    final isMultiSelectMode = multiSelectState.isMultiSelectMode;
+    final selectedIds = multiSelectState.selectedIds;
+
     return GridView.builder(
       key: const Key('photo_gallery_grid'),
       padding: const EdgeInsets.all(2),
@@ -170,11 +235,28 @@ class _PhotoGrid extends ConsumerWidget {
       itemCount: photos.length,
       itemBuilder: (context, index) {
         final photo = photos[index];
+        final isSelected = selectedIds.contains(photo.id);
         return PhotoGridItem(
           key: ValueKey<String>('photo_grid_item_${photo.id}'),
           photo: photo,
           thumbnailLoader: (p) => thumbnailLoader(p.id),
-          onTap: () => context.push('/photo/${photo.id}'),
+          isSelected: isSelected,
+          onTap: () {
+            if (isMultiSelectMode) {
+              // 多选模式：toggle 选中状态
+              ref.read(multiSelectProvider.notifier).toggle(photo.id);
+            } else {
+              // 普通模式：跳详情页
+              context.push('/photo/${photo.id}');
+            }
+          },
+          onLongPress: () {
+            // 长按进入多选模式并选中当前项
+            if (!isMultiSelectMode) {
+              ref.read(multiSelectProvider.notifier).enterMultiSelectMode();
+            }
+            ref.read(multiSelectProvider.notifier).toggle(photo.id);
+          },
         );
       },
     );

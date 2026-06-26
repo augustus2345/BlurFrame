@@ -152,6 +152,76 @@ void main() {
       expect(aspectRatio.aspectRatio, 1);
     });
   });
+
+  group('PhotoGridItem — multi-select (M1-T7)', () {
+    testWidgets('isSelected=true shows checkmark overlay', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          PhotoGridItem(
+            photo: photo,
+            thumbnailLoader: (_) async => tinyPng,
+            isSelected: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 勾选图标应该显示
+      expect(find.byIcon(Icons.check), findsOneWidget);
+    });
+
+    testWidgets('isSelected=false hides checkmark overlay', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          PhotoGridItem(
+            photo: photo,
+            thumbnailLoader: (_) async => tinyPng,
+            isSelected: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.check), findsNothing);
+    });
+
+    testWidgets('onLongPress fires when long-pressed', (tester) async {
+      var longPressFired = false;
+      await tester.pumpWidget(
+        wrap(
+          PhotoGridItem(
+            photo: photo,
+            thumbnailLoader: (_) async => tinyPng,
+            onLongPress: () => longPressFired = true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.byType(PhotoGridItem));
+      await tester.pump();
+
+      expect(longPressFired, isTrue);
+    });
+
+    testWidgets('longPress without onLongPress does not throw',
+        (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          PhotoGridItem(
+            photo: photo,
+            thumbnailLoader: (_) async => tinyPng,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.byType(PhotoGridItem));
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+    });
+  });
 }
 
 /// 一个永不 resolve 的 future — 用于测 FutureBuilder 的"等待中"分支。
