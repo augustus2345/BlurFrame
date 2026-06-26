@@ -9,14 +9,19 @@ import '../widgets/photo_detail_page.dart';
 
 /// 照片详情页路由目标 — `/photo/:assetId`（rootNavigator 上 push，全屏沉浸）。
 ///
-/// 结构：
+/// M1-T8 完整结构：
 /// ```
 /// Scaffold (黑底)
-/// ├── AppBar (back + 第 N / 共 M + 占位)
+/// ├── AppBar (back + 第 N / 共 M)
 /// └── Column
 ///     ├── Expanded → PageView.builder
-///     │   └── PhotoDetailPage (4 态: loading/error/empty/success)
-///     └── BottomActionBar (5 项操作)
+///     │   └── PhotoDetailPage
+///     │       └── PhotoDetailContent
+///     │           ├── PhotoViewer（大图 + 双指缩放）
+///     │           ├── ExifPanel（EXIF 字段表）
+///     │           ├── TagPills（标签展示）
+///     │           └── _DetailBottomButtons（分享 / 应用模版）
+///     └── BottomActionBar (5 项操作：删除/标签/星级/影集/模版)
 /// ```
 ///
 /// 删除流程（CLAUDE.md §2.5-20 防竞态）：

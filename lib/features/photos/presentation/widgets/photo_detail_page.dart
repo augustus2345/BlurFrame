@@ -5,15 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/photo_model.dart';
 import '../providers/photo_by_id_provider.dart';
-import 'photo_viewer.dart';
+import 'photo_detail_content.dart';
 
 /// 单张照片详情页 —— PageView 内的一页。
 ///
-/// 4 态：
+/// M1-T8 完整结构：
 /// - **loading**：fullImageLoader 还在跑
 /// - **error**：fullImageLoader 抛错 / 返回 null
 /// - **empty**：photoByIdProvider 返回 null
-/// - **success**：拿到 PhotoModel + bytes → 渲染 PhotoViewer
+/// - **success**：PhotoDetailContent（大图 + EXIF 字段表 + 标签 + 底部按钮）
 ///
 /// 设计：
 /// - 不持有任何状态 —— 4 态完全由 props + `photoByIdProvider` 派生。
@@ -22,11 +22,15 @@ class PhotoDetailPage extends ConsumerWidget {
   const PhotoDetailPage({
     required this.assetId,
     required this.fullImageLoader,
+    this.onShare,
+    this.onApplyTemplate,
     super.key,
   });
 
   final String assetId;
   final Future<Uint8List?> Function(String assetId) fullImageLoader;
+  final VoidCallback? onShare;
+  final VoidCallback? onApplyTemplate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,6 +42,8 @@ class PhotoDetailPage extends ConsumerWidget {
       assetId: assetId,
       photo: photo,
       fullImageLoader: fullImageLoader,
+      onShare: onShare,
+      onApplyTemplate: onApplyTemplate,
     );
   }
 }
@@ -48,11 +54,15 @@ class _PhotoLoadedView extends StatelessWidget {
     required this.assetId,
     required this.photo,
     required this.fullImageLoader,
+    this.onShare,
+    this.onApplyTemplate,
   });
 
   final String assetId;
   final PhotoModel photo;
   final Future<Uint8List?> Function(String assetId) fullImageLoader;
+  final VoidCallback? onShare;
+  final VoidCallback? onApplyTemplate;
 
   @override
   Widget build(BuildContext context) {
@@ -66,21 +76,14 @@ class _PhotoLoadedView extends StatelessWidget {
           return _PhotoErrorView(error: snapshot.error);
         }
         final bytes = snapshot.data!;
-        return PhotoViewer(
+        return PhotoDetailContent(
+          photo: photo,
           imageBytes: bytes,
-          aspectRatio: _computeAspectRatio(),
+          onShare: onShare,
+          onApplyTemplate: onApplyTemplate,
         );
       },
     );
-  }
-
-  double _computeAspectRatio() {
-    final width = photo.width;
-    final height = photo.height;
-    if (width == null || height == null || height == 0) {
-      return 1.0;
-    }
-    return width / height;
   }
 }
 

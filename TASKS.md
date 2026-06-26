@@ -216,7 +216,28 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **148/148** 通过（138 旧 + 10 新）
   - **预估**: 40 min
   - **完成时间**: 2026-06-26
-- [ ] **M1-T8** 详情页完整结构：顶部大图 + EXIF 字段表（**相机/镜头/ISO/快门/拍摄时间**，基于 `ExifDatasource.parse`）+ 标签 pills + 底部"**分享 / 应用模版**"双按钮
+- [x] **M1-T8** 详情页完整结构：顶部大图 + EXIF 字段表（**相机/镜头/ISO/快门/拍摄时间**，基于 `ExifDatasource.parse`）+ 标签 pills + 底部"**分享 / 应用模版**"双按钮
+  - 新增 5 个 lib 文件 + 3 个 test 文件：
+    - `lib/features/photos/presentation/providers/exif_datasource_provider.dart` — `ExifDatasource` DI 入口 + `exifByIdProvider` 根据 assetId 加载 EXIF
+    - `lib/features/photos/presentation/widgets/exif_panel.dart` — EXIF 字段表（相机/镜头/光圈/快门/ISO/焦距/拍摄时间），中文本地化 + 友好格式
+    - `lib/features/photos/presentation/widgets/tag_pills.dart` — 标签展示（ Chip pills + 可滚动 + 空态"暂无标签"占位）
+    - `lib/features/photos/presentation/widgets/photo_detail_content.dart` — 详情页完整内容区（PhotoViewer + ExifPanel + TagPills + 底部分享/应用模版按钮）
+  - 修改：
+    - `lib/features/photos/presentation/widgets/photo_detail_page.dart` — 改用 `PhotoDetailContent` 替代原来的纯 `PhotoViewer`
+    - `lib/features/photos/presentation/screens/photo_detail_screen.dart` — 更新文档注释反映 M1-T8 完整结构
+  - 测试（15 个新增）：
+    - `test/features/photos/exif_panel_test.dart` — **9 用例**：isEmpty 不渲染 / 相机行 / 时间行 / 曝光时间分数格式 / 光圈格式 / ISO 格式 / 焦距格式 / >=1s 小数形式 / 缺失字段占位符
+    - `test/features/photos/tag_pills_test.dart` — **4 用例**：空标签显示占位 / 标签 Chip 显示 / 标签标题 / 可滚动
+    - `test/features/photos/photo_detail_content_test.dart` — **5 用例**：分享+应用模版按钮显示 / 点击显示 SnackBar / 自定义回调 / PhotoViewer 渲染 / ExifPanel loading 态
+    - `test/features/photos/photo_detail_page_test.dart`（追加） — **1 用例**：success 态渲染 PhotoDetailContent + PhotoViewer
+  - **M1-T8 功能可用度**：
+    - **EXIF 字段表** ✅ 完整：基于 `ExifDatasource.parse` 实时解析 AssetEntity.originBytes
+    - **标签展示** ✅ 完整：`PhotoModel.tags` 直接展示（M4 接入 TagRepository 后改为显示 tag 名）
+    - **分享** 🟡 占位：SnackBar "分享功能即将推出"（M2-T6 导出后接入）
+    - **应用模版** 🟡 占位：SnackBar "模版功能即将推出"（M2-T5 FrameRenderer 完成后接入）
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **163/163** 通过（148 旧 + 15 新）
+  - **预估**: 40 min
+  - **完成时间**: 2026-06-26
 - [ ] **M1-T9** 4 态显式：loading / success / error / empty（`AsyncValue.when` + `EmptyState`，M1-T5 已覆盖 gallery 4 态；M1-T6 详情页复用同一套）
 - [ ] **M1-T10** 测试：`PhotoRepository` / `ExifDatasource` / `PhotoGrid` widget 三个核心文件覆盖完整
 

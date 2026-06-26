@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:photo_beauty/features/photos/data/models/photo_model.dart';
 import 'package:photo_beauty/features/photos/presentation/providers/photos_provider.dart';
 import 'package:photo_beauty/features/photos/presentation/widgets/photo_detail_page.dart';
+import 'package:photo_beauty/features/photos/presentation/widgets/photo_viewer.dart';
 
 import '../../test_utils/test_photo_fixtures.dart';
 
@@ -97,7 +98,7 @@ void main() {
       expect(find.byKey(const Key('photo_detail_page_not_found')), findsOneWidget);
     });
 
-    testWidgets('success: bytes loaded → PhotoDetailPage renders',
+    testWidgets('success: bytes loaded → PhotoDetailContent renders',
         (tester) async {
       final bytes = await makeBytes();
       final photos = TestPhotoFixtures.photos(count: 1);
@@ -109,9 +110,12 @@ void main() {
           photos: photos,
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
+      // PhotoDetailPage 现在内部渲染 PhotoDetailContent
       expect(find.byType(PhotoDetailPage), findsOneWidget);
+      // PhotoDetailContent 包含 PhotoViewer（图片查看器）
+      expect(find.byType(PhotoViewer), findsOneWidget);
     });
   });
 }
