@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../photos/presentation/providers/asset_thumbnail_loader_provider.dart';
@@ -42,7 +43,7 @@ class _AlbumListScreenState extends ConsumerState<AlbumListScreen> {
             icon: const Icon(Icons.add),
             tooltip: '新建影集',
             onPressed: () {
-              // TODO(M3-T4): navigate to album create flow
+              context.push('/albums/create');
             },
           ),
         ],

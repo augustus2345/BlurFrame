@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/albums/presentation/screens/album_create_screen.dart';
 import '../../features/albums/presentation/screens/album_list_screen.dart';
 import '../../features/frames/presentation/screens/frame_template_editor_screen.dart';
 import '../../features/frames/presentation/screens/frame_template_list_screen.dart';
@@ -23,6 +24,7 @@ abstract class AppRoute {
   static const photoDetail = '/photo/:id';
   static const frameEditor = '/frames/editor';
   static const albumDetail = '/albums/:id';
+  static const albumCreate = '/albums/create';
   static const cleanup = '/cleanup';
 }
 
@@ -81,6 +83,15 @@ GoRouter _buildRouter() {
             pageBuilder: (_, __) => const NoTransitionPage(
               child: AlbumListScreen(),
             ),
+            routes: [
+              GoRoute(
+                path: 'create',
+                parentNavigatorKey: rootNavigatorKey,
+                pageBuilder: (_, __) => const MaterialPage<void>(
+                  child: AlbumCreateScreen(),
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: AppRoute.frames,

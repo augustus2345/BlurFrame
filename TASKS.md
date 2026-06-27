@@ -436,7 +436,14 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **353/353 通过**（原 338 + 15 新）
   - **预估**: 30 min
   - **完成时间**: 2026-06-27
-- [ ] **M3-T4** 新建影集 sheet（名称 + 选照片 + 版式）
+- [x] **M3-T4** 新建影集 sheet（名称 + 选照片 + 版式）
+  - 新增 `lib/features/albums/presentation/screens/album_create_screen.dart`：TextField 名称 + 4 种版式 ChoiceChip + 4 列照片多选网格（tap 切换选中态 + 已选 N 张计数）+ 创建按钮 + 关闭按钮 + `canPop()` 守卫
+  - 修改 `lib/features/albums/presentation/screens/album_list_screen.dart`：右上角 `+` 按钮改为 `context.push('/albums/create')`（替换 TODO）
+  - 修改 `lib/core/router/app_router.dart`：注册 `/albums/create` 子路由（`AlbumCreateScreen`）+ `AppRoute.albumCreate` 常量
+  - 测试 `test/features/albums/album_create_screen_test.dart`：**10 个用例**覆盖初始态 / 输入名称 / 选照片切换 / 多选计数 / 切换版式 / 名称空提示 / 正常创建 / 创建中 loading / 创建失败 snackbar / 关闭按钮
+  - **验证**: `flutter analyze` → **No issues found on M3-T4 changed files** | `flutter test` → **64/64 通过**（54 旧 + 10 新）
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-27
 - [ ] **M3-T5** 详情页：版式 `autoLayout` + 手动 1/2/3/4 宫格
 - [ ] **M3-T6** 拖拽重排（`ReorderableListView` 持久化）
 - [ ] **M3-T7** 换封面
