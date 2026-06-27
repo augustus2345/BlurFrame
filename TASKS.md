@@ -249,7 +249,16 @@
 
 ## M2 — 模版 ⬜（独立 tab，对齐 mockup v3 / PRD v0.2）
 
-- [ ] **M2-T1** `FrameTemplate` / 3 种 `FrameLayer`（`BlurBorderLayer` / `TextWatermarkLayer` / `ColorStripeLayer`）/ `WatermarkPosition` 加 `@HiveType`（typeId 2–5；含 `usageCount` 写回 Hive 字段）
+- [x] **M2-T1** `FrameTemplate` / 3 种 `FrameLayer`（`BlurBorderLayer` / `TextWatermarkLayer` / `ColorStripeLayer`）/ `WatermarkPosition` 加 `@HiveType`（typeId 2 / 4-6 / 9-10；含 `usageCount` 写回 Hive 字段）
+  - `FrameTemplate` → typeId 2（含 `@HiveField` id/name/layers/isBuiltIn/usageCount/createdAt）
+  - `BlurBorderLayer` → typeId 4，`TextWatermarkLayer` → typeId 5，`ColorStripeLayer` → typeId 6
+  - `WatermarkPosition` → typeId 9，`StripePosition` → typeId 10（PLAN.md typeId 7/8 保留给 M3 AlbumModel / M4 TagModel）
+  - `FrameLayer` 改为普通 `sealed class`（不 extend HiveObject），避免生成代码尝试实例化抽象类
+  - 新增 `copyWith()` / `withIncrementedUsage()` 便于 usageCount 增量
+  - `hive_service.dart` 注册 6 个新适配器（isAdapterRegistered 幂等守卫）
+  - 新增 `test/features/frames/frame_template_test.dart`：16 个用例覆盖 roundtrip / layer 多态 / copyWith / withIncrementedUsage
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **200/200 通过**
+  - **完成时间**: 2026-06-27
 - [ ] **M2-T2** `FrameRepository.builtInTemplates()` 注入 **2 套**内置模版：**极简**（窄边模糊边框）/ **杂志**（顶部品牌 + 底部 EXIF 水印 + 模糊边框 3 层叠加）
 - [ ] **M2-T3** 模版 tab 列表页（独立 tab `/frames`，不是 push）：2 列网格 + `editor-frame` 预览 + "自带"标记 / "使用 N 次"统计 + 长按复制/删除（内置不可删）
 - [ ] **M2-T4** 模版编辑器 `/frames/editor`（push）：顶部预览 + 中部 3 层分组（每层 switch + 参数：模糊 intensity / 水印 text + EXIF / 颜色选择）+ 底部"保存模板"按钮

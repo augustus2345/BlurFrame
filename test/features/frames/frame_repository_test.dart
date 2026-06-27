@@ -18,16 +18,16 @@ void main() {
   late _MockBox box;
   late FrameRepository repo;
 
-  const builtIn = FrameTemplate(
+  final builtIn = FrameTemplate(
     id: 'classic-white',
     name: 'Classic White',
-    layers: <FrameLayer>[],
+    layers: const [],
     isBuiltIn: true,
   );
-  const userFrame = FrameTemplate(
+  final userFrame = FrameTemplate(
     id: 'user-1',
     name: 'My Frame',
-    layers: <FrameLayer>[],
+    layers: const [],
   );
 
   setUp(() {
@@ -86,7 +86,7 @@ void main() {
       when(() => box.put(any<dynamic>(), any<dynamic>()))
           .thenAnswer((_) async {});
 
-      const updated = FrameTemplate(
+      final updated = FrameTemplate(
         id: 'user-1',
         name: 'Renamed',
         layers: <FrameLayer>[],

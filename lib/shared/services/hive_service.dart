@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../features/frames/data/models/frame_template.dart';
 import '../../features/photos/data/models/photo_model.dart';
 
 /// Bootstraps Hive boxes and centralizes access. All persistence flows
@@ -54,19 +55,23 @@ class HiveService {
   /// Register Hive adapters for typed models.
   ///
   /// M1 已接入：PhotoModel（typeId 1）。
-  /// M2-M4 仍为占位 — 接入步骤：
+  /// M2 已接入：FrameTemplate (2) + BlurBorderLayer (4) + TextWatermarkLayer (5) +
+  ///   ColorStripeLayer (6) + WatermarkPosition (9) + StripePosition (10)。
+  /// M3-M4 仍为占位 — 接入步骤：
   ///   1. 在对应 model 文件加 `@HiveType(typeId: N)` + 字段 `@HiveField`
   ///   2. 跑 `dart run build_runner build --delete-conflicting-outputs`
   ///   3. 把下方对应的 `// TODO(Mx): Hive.registerAdapter(...)` 取消注释
   ///
-  /// 保留 try/catch 是为了：当某个 TODO 注释取消后，build_runner 还没跑过
-  /// 仍会编译失败 → 抛 → 提示。**不靠 try/catch 跳过未生成的适配器**。
-  ///
   /// typeId 分配（与 PLAN.md R5 一致）：
-  ///   1 → PhotoModel        (M1 ✅)
-  ///   2 → FrameTemplate     (M2；同步注册 typeId=3..6 的 FrameLayer 子类 / WatermarkPosition)
-  ///   7 → AlbumModel        (M3)
-  ///   8 → TagModel          (M4)
+  ///   1  → PhotoModel        (M1 ✅)
+  ///   2  → FrameTemplate     (M2 ✅)
+  ///   4  → BlurBorderLayer   (M2 ✅)
+  ///   5  → TextWatermarkLayer (M2 ✅)
+  ///   6  → ColorStripeLayer  (M2 ✅)
+  ///   9  → WatermarkPosition (M2 ✅)
+  ///   10 → StripePosition    (M2 ✅)
+  ///   7  → AlbumModel        (M3)
+  ///   8  → TagModel          (M4)
   static void registerAdapters() {
     try {
       // 防御性：跨测试文件 / 热重载时，Hive 全局注册表可能已存在该 typeId。
@@ -74,7 +79,25 @@ class HiveService {
       if (!Hive.isAdapterRegistered(1)) {
         Hive.registerAdapter(PhotoModelAdapter());
       }
-      // TODO(M2): Hive.registerAdapter(FrameTemplateAdapter());
+      // M2: FrameTemplate (2) + 3 layer adapters (4-6)
+      if (!Hive.isAdapterRegistered(2)) {
+        Hive.registerAdapter(FrameTemplateAdapter());
+      }
+      if (!Hive.isAdapterRegistered(4)) {
+        Hive.registerAdapter(BlurBorderLayerAdapter());
+      }
+      if (!Hive.isAdapterRegistered(5)) {
+        Hive.registerAdapter(TextWatermarkLayerAdapter());
+      }
+      if (!Hive.isAdapterRegistered(6)) {
+        Hive.registerAdapter(ColorStripeLayerAdapter());
+      }
+      if (!Hive.isAdapterRegistered(9)) {
+        Hive.registerAdapter(WatermarkPositionAdapter());
+      }
+      if (!Hive.isAdapterRegistered(10)) {
+        Hive.registerAdapter(StripePositionAdapter());
+      }
       // TODO(M3): Hive.registerAdapter(AlbumModelAdapter());
       // TODO(M4): Hive.registerAdapter(TagModelAdapter());
     } catch (e, st) {

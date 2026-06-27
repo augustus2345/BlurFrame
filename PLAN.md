@@ -11,7 +11,8 @@
 - **工程骨架**: ✅ 主题 / 路由 / Shell（**5 tab**） / Hive 启动 / 设置服务已就位
 - **M0**: ✅ 基础完成（测试 + 文档注释 + 依赖检查 + registerAdapters 占位 + `flutter run` 推至 M1）
 - **M1**: ✅ 完成（T1 权限引导 / T2 PhotoModel / T3 loadAllFromSystem / T4 exif 集成 / T5 3 列网格 + 缩略图懒加载 / T6 详情页 / T7 多选 / T8 详情页完整结构 / T9 测试修复 / T10 测试覆盖完整）
-- **M2–M5**: ⬜ 全部为占位 EmptyState，待实现
+- **M2**: 🟡 进行中（T1 完成：FrameTemplate + 3 Layer + WatermarkPosition/StripePosition @HiveType）
+- **M3–M5**: ⬜ 全部为占位 EmptyState，待实现
 - **M6**: ⬜ 打磨 + Integration test
 
 ---
@@ -93,7 +94,7 @@ flutter run
 
 ---
 
-### M2 — 模版 ⬜（独立 tab，对齐 mockup v3 / PRD v0.2）
+### M2 — 模版 🟡（独立 tab，对齐 mockup v3 / PRD v0.2）
 
 **目标**: **2 套**内置模版、模版 tab 列表（带使用次数）、模版编辑器（**3 种图层**）、渲染器、导出。
 
