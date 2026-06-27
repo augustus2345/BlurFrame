@@ -287,6 +287,15 @@ flutter test integration_test -d macos
   ```
 - **适用**: 所有要测 `Image.memory` / `Image` widget 加载流程的 widget 测试；如果有 `image` 包依赖，也可以 `image.Image(width:1, height:1)` → `encodePng(...)` 生成真字节
 
+### 7.15 `image` 4.x 的 `gaussianBlur` / `fillRect` / `drawString` 修改 src in place
+- **症状**: `final blurred = img.gaussianBlur(source, radius: 30);` 然后 `final result = img.compositeImage(blurred, source, ...);` 想用 `source` 的原始像素覆盖 `blurred` 中心，但 `result` 还是 blur 后的混合值（比如白色方块中心是 (254, 212, 212) 而非纯白 (255, 255, 255)）
+- **根因**: `image` 4.x 的 `gaussianBlur` (实现走 `separableConvolution`) **返回入参 src 本身**，并在原地修改 `src.data`。`fillRect` / `drawString` 也是 in-place 写。这与 Dart 命名式 immutable 风格相悖，但实测 `identical(blurred, source) == true`
+- **修法**:
+  1. 需要"原图 + 模糊版共存"时，先 `final sharp = source.clone();`（`Image.clone()` 是 deep copy）
+  2. 再 `final blurred = img.gaussianBlur(source, radius: r);`（source 现在 = blurred）
+  3. `compositeImage(blurred, sharp, ...)` 用 sharp 取原像素
+- **适用**: 所有用 `image` 4.x 写合成器（`FrameRenderer`、`filter pipeline`）；特别是需要"在模糊底上盖原图局部"这种 blend 逻辑时 — 必须 clone 一份原始。**测试断言也要容忍 JPEG 压缩噪声**（quality 90 在 pure white 上的偏差是 ±1，但高对比度边界跨 8×8 DCT 块时可能跌到 ±50）
+
 ### 7.14 测试照片 fixture：`TestPhotoFixtures.photos` + `thumbnailMap`
 - **场景**: 想让 widget 测试看到"真实照片"（每张不同色、确定性、可断言），又不想依赖真实平台 / 文件系统
 - **做法**: `test/test_utils/test_photo_fixtures.dart`（M1-T5 加的）

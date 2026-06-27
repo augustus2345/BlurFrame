@@ -333,7 +333,35 @@
   - **验证**: `flutter analyze` → **No issues on M2-T4 changed files**（剩余 2 个 info `value` deprecated 在 `DropdownButtonFormField` 是 Flutter 3.33+ 替换 `initialValue` 的 deprecation；3.44.4 上有提示但 `value` 仍可工作；改 `initialValue` 会失去受控更新能力，不必要） | `flutter test` → **251/251 通过**（原 222 + 15 notifier + 4 layer switch group + 10 editor screen）
   - **预估**: 60 min
   - **完成时间**: 2026-06-27
-- [ ] **M2-T5** `FrameRenderer` 渲染器（`compute` 隔离，输入 bytes + template → bytes，3 种 layer 按 z-order 合成）
+- [x] **M2-T5** `FrameRenderer` 渲染器（`compute` 隔离，输入 bytes + template → bytes，3 种 layer 按 z-order 合成）
+  - 新增 `lib/features/frames/data/datasources/frame_renderer.dart`：
+    - `FrameRenderException`（解码失败 / 合成失败的显式异常类型，UI 可 catch 后给"渲染失败 / 重试"提示）
+    - `FrameRenderer.render(Uint8List sourceBytes, FrameTemplate template) → Future<Uint8List>`（`compute` 入口，输出 JPEG quality 90）
+    - `_RenderJob` record + `_renderIsolate` top-level 函数（`compute` 要求）
+    - `_compositeBlurBorder` / `_compositeTextWatermark` / `_compositeColorStripe` 三个合成函数（sealed class switch 分派）
+    - `_argbToColor` 助手：按 alpha 分支到 `ColorRgb8` / `ColorRgba8`，让半透明颜色真正 blend
+  - 3 种 layer 的合成策略：
+    - **BlurBorderLayer**：intensity 0–10 → blur radius `intensity * 3` px（clamp 0–48）。`edge=true` 时 `gaussianBlur` + `compositeImage(blurred, sharp, srcRect=内圈, blend: BlendMode.direct)` 把原始 sharp 中心贴回；`edge=false` 时整图模糊
+    - **TextWatermarkLayer**：fontSize → 最近内置 arial14/24/48；按 7 个 `WatermarkPosition` 算 (x, y) anchor + padding；`drawString` 内置字体的缺失字符（如中文）会被自动跳过
+    - **ColorStripeLayer**：thickness = `image.height * width`（width 是 0–1 相对值），`fillRect` 的 radius 参数支持圆角
+  - z-order：**layers 列表顺序 = 绘制顺序（先画在底部，后画在顶层）** —— 与 `FramePreviewPainter` 保持一致（视觉上 preview 和 render 一致）
+  - 新增 `test/features/frames/frame_renderer_test.dart`：**14 个用例**覆盖：
+    - empty / passthrough（2 个）：空 layers 维度不变 / 3 层 z-order 顺序验证
+    - BlurBorderLayer（3 个）：`edge=true` 中心 sharp + 边缘模糊 / `edge=false` 整图模糊 / `intensity=0` no-op
+    - ColorStripeLayer（3 个）：top stripe 厚度正确 / bottom stripe 位置正确 / cornerRadius > 0 不报错
+    - TextWatermarkLayer（2 个）：ASCII 'X' 中心水印渲染 / 中文（无内置字体）不 crash
+    - 异常路径（2 个）：空 bytes / 损坏 bytes → `FrameRenderException`
+    - 内置模板（2 个）：`builtin-minimal` / `builtin-magazine` 端到端渲染
+  - **关键踩坑（写进 CLAUDE.md §7.15）**：`image` 4.x 的 `gaussianBlur` / `fillRect` / `drawString` 都是 **in-place 修改 src** 并返回同一个 Image 对象（实测 `identical(blurred, source) == true`）。`_compositeBlurBorder` 必须先 `source.clone()` 备份 sharp 原图，否则 `edge=true` 模式下 `compositeImage(blurred, source, ...)` 会从"已经模糊的 source"取像素，导致中心变 (254, 212, 212) 而非纯白
+  - **测试断言容差**：JPEG quality 90 在 pure white 上偏差 ±1，但跨 8×8 DCT 块的 high-contrast 边界可能跌到 ±50；测试用 `greaterThanOrEqualTo(250)` / 区域搜索代替 `equals(255)`
+  - **M2-T5 功能可用度**：
+    - **API** ✅ 完整：`FrameRenderer.render(bytes, template) → Future<Uint8List>` 主入口可直接接 M2-T6 详情页
+    - **`compute` 隔离** ✅ 完整：所有 CPU 密集操作（gaussianBlur + encodeJpg）跑在独立 isolate，UI 不卡
+    - **3 种 layer 合成** ✅ 完整：z-order 与 FramePreviewPainter 一致；中文水印已知限制（M6 polish）
+    - **失败语义** ✅ 完整：`FrameRenderException` 抛出，UI 可 catch 重试
+  - **验证**: `flutter analyze` → **No issues found on M2-T5 files** | `flutter test` → **265/265 通过**（原 251 + 14 新）
+  - **预估**: 40 min（含 30 min 排查 gaussianBlur in-place 修改 src 导致 edge blur 失效的根因）
+  - **完成时间**: 2026-06-27
 - [ ] **M2-T6** 导出：详情页"应用模版" → 进度 → `gal.saveImage()` → 提示成功 → 模版 `usageCount += N`
 - [ ] **M2-T7** 测试：FrameRenderer 3 种 layer 各自合成 / `usageCount` 持久化往返 / 编辑器添加/删除图层 widget
 
