@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../frames/data/models/frame_template.dart';
+import '../../../frames/data/repositories/frame_repository.dart';
 import '../../data/models/photo_model.dart';
+import '../providers/apply_template_provider.dart';
 import '../providers/full_image_loader_provider.dart';
 import '../providers/photos_provider.dart';
+import '../widgets/apply_template_sheet.dart';
 import '../widgets/bottom_action_bar.dart';
 import '../widgets/photo_detail_page.dart';
 
@@ -28,6 +32,12 @@ import '../widgets/photo_detail_page.dart';
 /// - 弹 AlertDialog 二次确认（由 [BottomActionBar] 负责）。
 /// - 确认后调 `PhotoRepository.delete(id)` → `photosProvider.refresh()`。
 /// - gallery 列表缩短 → PageView 自动 rebuild；空时 pop。
+///
+/// M2-T6 导出流程：
+/// - [BottomActionBar] 模版按钮 / [_DetailBottomButtons] "应用模版"按钮
+///   → [showApplyTemplateSheet] → 用户选模板 → [ApplyTemplateNotifier.applyTemplate]
+///   → 渲染中（loading）→ 保存中（loading）→ 成功 snackbar + usageCount += 1
+///   → 失败 snackbar + 重置状态。
 class PhotoDetailScreen extends ConsumerStatefulWidget {
   const PhotoDetailScreen({required this.assetId, super.key});
 
@@ -57,6 +67,97 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
     if (remaining.isEmpty) {
       Navigator.of(context).pop();
     }
+  }
+
+  /// 显示模板选择器 sheet，用户选好后启动导出流程。
+  Future<void> _showTemplateSheet(String assetId) async {
+    final repo = ref.read(frameRepositoryProvider);
+    final fullLoader = ref.read(fullImageLoaderProvider);
+
+    await showApplyTemplateSheet(
+      context: context,
+      assetId: assetId,
+      onSelected: (template) async {
+        final notifier = ref.read(applyTemplateProvider.notifier);
+        notifier.addListener(_onApplyStateChanged);
+
+        await notifier.applyTemplate(
+          template: template,
+          fullImageLoader: () => fullLoader(assetId),
+          frameRepository: repo,
+        );
+      },
+    );
+  }
+
+  /// 监听导出状态变化，显示对应 snackbar。
+  void _onApplyStateChanged(ApplyTemplateState state) {
+    if (!mounted) return;
+
+    switch (state) {
+      case ApplyTemplateInitial():
+        // no-op
+        break;
+      case ApplyTemplateRendering():
+        _showProgressSnackbar('正在渲染…');
+        break;
+      case ApplyTemplateSaving():
+        _showProgressSnackbar('正在保存到相册…');
+        break;
+      case ApplyTemplateSuccess():
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              key: Key('apply_template_success_snackbar'),
+              content: Text('已保存到相册'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        // 重置状态
+        ref.read(applyTemplateProvider.notifier).reset();
+        break;
+      case ApplyTemplateError(msg: final message):
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              key: const Key('apply_template_error_snackbar'),
+              content: Text(message),
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: '重试',
+                onPressed: () {
+                  // 重置后用户可以重新选择模板
+                  ref.read(applyTemplateProvider.notifier).reset();
+                },
+              ),
+            ),
+          );
+        break;
+    }
+  }
+
+  void _showProgressSnackbar(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          key: const Key('apply_template_progress_snackbar'),
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 16),
+              Text(message),
+            ],
+          ),
+          duration: const Duration(days: 1), // 一直显示直到手动 hide
+        ),
+      );
   }
 
   @override
@@ -123,6 +224,7 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
                   key: ValueKey<String>('photo_detail_page_${photo.id}'),
                   assetId: photo.id,
                   fullImageLoader: fullImageLoader,
+                  onApplyTemplate: () => _showTemplateSheet(photo.id),
                 );
               },
             ),
@@ -130,9 +232,31 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
           BottomActionBar(
             photoId: currentPhoto.id,
             onDelete: _handleDelete,
+            onApplyTemplate: () => _showTemplateSheet(currentPhoto.id),
           ),
         ],
       ),
     );
   }
+}
+
+/// 显示"应用模版"底部选择器 sheet 并在用户选好后触发 [onSelected]。
+///
+/// [assetId] 用于加载原始图片字节。
+Future<void> showApplyTemplateSheet({
+  required BuildContext context,
+  required String assetId,
+  required void Function(FrameTemplate template) onSelected,
+}) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) => ApplyTemplateSheet(
+      onSelect: (template) {
+        Navigator.of(sheetContext).pop();
+        onSelected(template);
+      },
+    ),
+  );
 }

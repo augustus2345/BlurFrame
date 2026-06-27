@@ -218,4 +218,63 @@ void main() {
       expect(copy.layers[1], isA<TextWatermarkLayer>());
     });
   });
+
+  // ── incrementUsageCount() ─────────────────────────────────
+  //
+  // M2-T6 引入：导出成功后 usageCount += 1。
+  // 契约：
+  // - id 存在 → 读取 → withIncrementedUsage() → 写回
+  // - id 缺失 → no-op（不抛错）
+  group('FrameRepository.incrementUsageCount', () {
+    test('reads template, increments usageCount, writes back', () async {
+      final original = FrameTemplate(
+        id: 'user-frame',
+        name: 'User Frame',
+        usageCount: 3,
+        layers: const [],
+      );
+      when(() => box.get('user-frame')).thenReturn(original);
+      when(() => box.put(any<dynamic>(), any<dynamic>()))
+          .thenAnswer((_) async {});
+
+      await repo.incrementUsageCount('user-frame');
+
+      final captured = verify(
+        () => box.put('user-frame', captureAny<FrameTemplate>()),
+      ).captured.single as FrameTemplate;
+      expect(captured.usageCount, equals(4));
+    });
+
+    test('is no-op when template id does not exist', () async {
+      when(() => box.get('missing')).thenReturn(null);
+
+      await repo.incrementUsageCount('missing');
+
+      verifyNever(() => box.put(any<dynamic>(), any<dynamic>()));
+    });
+
+    test('preserves all other fields when incrementing', () async {
+      final original = FrameTemplate(
+        id: 'builtin-minimal',
+        name: '极简',
+        isBuiltIn: true,
+        usageCount: 0,
+        createdAt: DateTime.utc(2026, 6, 1),
+        layers: [BlurBorderLayer(intensity: 4, edge: true)],
+      );
+      when(() => box.get('builtin-minimal')).thenReturn(original);
+      when(() => box.put(any<dynamic>(), any<dynamic>()))
+          .thenAnswer((_) async {});
+
+      await repo.incrementUsageCount('builtin-minimal');
+
+      final captured = verify(
+        () => box.put('builtin-minimal', captureAny<FrameTemplate>()),
+      ).captured.single as FrameTemplate;
+      expect(captured.usageCount, equals(1));
+      expect(captured.name, equals('极简'));
+      expect(captured.isBuiltIn, isTrue);
+      expect(captured.layers, hasLength(1));
+    });
+  });
 }

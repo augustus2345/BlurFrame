@@ -171,6 +171,17 @@ class FrameRepository {
     return '$sourceId-copy-$n';
   }
 
+  /// Increment the [FrameTemplate.usageCount] for the given template.
+  ///
+  /// Called by the export flow after a successful `gal.saveImage()` so that
+  /// popular templates bubble up in the list UI.
+  Future<void> incrementUsageCount(String id) async {
+    final tmpl = getById(id);
+    if (tmpl == null) return; // no-op for missing id
+    final updated = tmpl.withIncrementedUsage();
+    await _box.put(id, updated);
+  }
+
   /// Seed the box with built-in templates if they are not yet present.
   ///
   /// Idempotent: safe to call on every app startup. Only writes when a

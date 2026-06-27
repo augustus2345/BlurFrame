@@ -3,17 +3,21 @@ import 'package:flutter/material.dart';
 /// 详情页底部 5 项批量操作栏。
 ///
 /// - **删除** ✅ 完整：tap → 二次确认 → 调 [onDelete](photoId)
-/// - **模版** 🟡 占位：SnackBar "模版功能即将推出"（M2-T5 完成后接入）
+/// - **模版** ✅ M2-T6：tap → 调用 [onApplyTemplate]（由 [PhotoDetailScreen] 展示选择器）
 /// - **标签 / 星级 / 影集** 🔒 disabled 占位（依赖 M4-T5 / M3 后续 milestone）
 class BottomActionBar extends StatelessWidget {
   const BottomActionBar({
     required this.photoId,
     required this.onDelete,
+    this.onApplyTemplate,
     super.key,
   });
 
   final String? photoId;
   final Future<void> Function(String photoId) onDelete;
+
+  /// M2-T6 导出流程入口，由 [PhotoDetailScreen] 传入具体实现。
+  final VoidCallback? onApplyTemplate;
 
   Future<void> _handleDelete(BuildContext context) async {
     final id = photoId;
@@ -44,16 +48,6 @@ class BottomActionBar extends StatelessWidget {
       return;
     }
     await onDelete(id);
-  }
-
-  void _handleFrame(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        key: Key('photo_detail_frame_snackbar'),
-        content: Text('模版功能即将推出'),
-        duration: Duration(seconds: 2),
-      ),
-    );
   }
 
   @override
@@ -97,9 +91,11 @@ class BottomActionBar extends StatelessWidget {
           ),
           IconButton(
             key: const Key('photo_detail_action_frame'),
-            tooltip: '模版（即将推出）',
+            tooltip: '应用模版',
             icon: const Icon(Icons.crop_square_outlined),
-            onPressed: canAct ? () => _handleFrame(context) : null,
+            onPressed: canAct && onApplyTemplate != null
+                ? () => onApplyTemplate!()
+                : null,
           ),
         ],
       ),

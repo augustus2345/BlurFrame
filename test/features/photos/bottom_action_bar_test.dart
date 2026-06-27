@@ -7,12 +7,14 @@ void main() {
   Widget buildSubject({
     String? photoId = 'photo_001',
     Future<void> Function(String)? onDelete,
+    VoidCallback? onApplyTemplate,
   }) {
     return MaterialApp(
       home: Scaffold(
         body: BottomActionBar(
           photoId: photoId,
           onDelete: onDelete ?? (_) async {},
+          onApplyTemplate: onApplyTemplate,
         ),
       ),
     );
@@ -66,15 +68,34 @@ void main() {
       },
     );
 
-    testWidgets('frame button shows "即将推出" SnackBar', (tester) async {
-      await tester.pumpWidget(buildSubject());
+    testWidgets(
+      'frame button calls onApplyTemplate when provided and photoId is set',
+      (tester) async {
+        var called = false;
+        await tester.pumpWidget(
+          buildSubject(onApplyTemplate: () => called = true),
+        );
 
-      await tester.tap(find.byKey(const Key('photo_detail_action_frame')));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('photo_detail_action_frame')));
+        await tester.pump();
 
-      expect(find.byKey(const Key('photo_detail_frame_snackbar')), findsOneWidget);
-      expect(find.text('模版功能即将推出'), findsOneWidget);
-    });
+        expect(called, isTrue);
+      },
+    );
+
+    testWidgets(
+      'frame button does NOT crash when onApplyTemplate is null',
+      (tester) async {
+        // photoId is set but onApplyTemplate is null — button is disabled,
+        // so tap should do nothing (no exception).
+        await tester.pumpWidget(buildSubject(onApplyTemplate: null));
+
+        final frameBtn = tester.widget<IconButton>(
+          find.byKey(const Key('photo_detail_action_frame')),
+        );
+        expect(frameBtn.onPressed, isNull);
+      },
+    );
 
     testWidgets(
       'tag / star / album buttons are disabled placeholders',

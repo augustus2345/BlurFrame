@@ -362,7 +362,34 @@
   - **验证**: `flutter analyze` → **No issues found on M2-T5 files** | `flutter test` → **265/265 通过**（原 251 + 14 新）
   - **预估**: 40 min（含 30 min 排查 gaussianBlur in-place 修改 src 导致 edge blur 失效的根因）
   - **完成时间**: 2026-06-27
-- [ ] **M2-T6** 导出：详情页"应用模版" → 进度 → `gal.saveImage()` → 提示成功 → 模版 `usageCount += N`
+- [x] **M2-T6** 导出：详情页"应用模版" → 进度 → `gal.saveImage()` → 提示成功 → 模版 `usageCount += N`
+  - 新增 4 个 lib 文件 + 2 个 test 文件：
+    - `lib/features/photos/presentation/providers/apply_template_provider.dart` — `ApplyTemplateState`（sealed class：Initial / Rendering / Saving / Success / Error）+ `ApplyTemplateNotifier`（4 步流程编排：获取字节→渲染→保存→usageCount）+ `ImageSaver` 抽象（生产 `GalImageSaver` 调 `Gal.putImageBytes`；测试注入 mock）
+    - `lib/features/photos/presentation/widgets/apply_template_sheet.dart` — 模板选择 BottomSheet（DraggableScrollableSheet + 模板列表 + 预览缩略图 + "自带"/"N 次"角标）
+    - `lib/features/photos/presentation/screens/photo_detail_screen.dart` — 改为 orchestrator：`_showTemplateSheet` → `showApplyTemplateSheet` → 用户选模板 → `ApplyTemplateNotifier.applyTemplate` → 监听状态变化 → 进度/成功/错误 snackbar；底部 5 项操作栏和内容区"应用模版"按钮都连到同一 flow
+    - `lib/features/photos/presentation/widgets/bottom_action_bar.dart` — 新增 `onApplyTemplate` 参数（M2-T6 之前是占位 SnackBar）
+  - 修改：
+    - `lib/features/frames/data/repositories/frame_repository.dart` — 新增 `incrementUsageCount(id)` 方法（读取→ withIncrementedUsage → 写回；id 不存在则 no-op）
+  - 测试（**11 个新增**）：
+    - `test/features/frames/frame_repository_test.dart`（追加 3 个）— incrementUsageCount 正常 + 缺失 id no-op + 保留其他字段
+    - `test/features/photos/apply_template_provider_test.dart`（**6 个**）— 初始态 / 完整 happy path（Rendering→Saving→Success）/ fullImageLoader 返回 null 错误 / saver.save 抛错 / reset() 重置 / usageCount 失败不影响 success
+    - `test/features/photos/bottom_action_bar_test.dart`（改写 2 个）— frame 按钮调用 onApplyTemplate / onApplyTemplate=null 时按钮 disabled 不抛错
+  - **M2-T6 功能可用度**：
+    - **应用模版按钮（底部栏）** ✅ 完整：tap → 模板选择 sheet → 渲染 → 保存 → 成功 snackbar
+    - **应用模版按钮（内容区）** ✅ 完整：同底部栏，共享同一 flow
+    - **进度状态** ✅ 完整：渲染中"正在渲染…" / 保存中"正在保存到相册…"（CircularProgressIndicator + 永久 snackbar 直到完成）
+    - **保存成功** ✅ 完整：`Gal.putImageBytes` 写入相册 + `usageCount += 1`
+    - **错误处理** ✅ 完整：`FrameRenderException` → 渲染失败 / `GalException` → 保存失败 / null bytes → 无法读取原图；均带"重试"按钮
+    - **usageCount 幂等** ✅：`incrementUsageCount` 内部使用 `withIncrementedUsage()`，无竞态风险
+  - **关键设计决策**：
+    1. **`ImageSaver` 抽象而非直接 mock `Gal`** — `Gal.putImageBytes` 是 static method，mocktail 无法 mock；通过 `ImageSaver` 接口注入测试实现，隔离 `Gal` 依赖
+    2. **`sealed class ApplyTemplateState`** — 5 个子状态覆盖完整生命周期，UI 用 `switch` 穷举所有分支，编译器强制覆盖新状态
+    3. **`PhotoDetailScreen` 作为 orchestrator** — 持有 `applyTemplateProvider`，监听状态变化并显示对应 snackbar；两个按钮（底部栏 + 内容区）都调用 `_showTemplateSheet`，共享同一 flow
+    4. **`GalImageSaver` 默认注入** — `ApplyTemplateNotifier` 构造函数默认 `imageSaver: const GalImageSaver()`，生产路径无需额外 DI
+    5. **`usageCount` 失败不阻断 success** — `incrementUsageCount` 的异常被 catch 吞掉，只记日志；用户已看到"保存成功"，不影响体验
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **275/275 通过**（原 269 + 6 新 applyTemplateProvider）
+  - **预估**: 50 min
+  - **完成时间**: 2026-06-27
 - [ ] **M2-T7** 测试：FrameRenderer 3 种 layer 各自合成 / `usageCount` 持久化往返 / 编辑器添加/删除图层 widget
 
 **完成时间**: _待定_
