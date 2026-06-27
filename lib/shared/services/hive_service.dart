@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../features/albums/data/models/album_model.dart';
 import '../../features/frames/data/models/frame_template.dart';
 import '../../features/photos/data/models/photo_model.dart';
 
@@ -98,7 +99,12 @@ class HiveService {
       if (!Hive.isAdapterRegistered(10)) {
         Hive.registerAdapter(StripePositionAdapter());
       }
-      // TODO(M3): Hive.registerAdapter(AlbumModelAdapter());
+      if (!Hive.isAdapterRegistered(11)) {
+        Hive.registerAdapter(AlbumLayoutAdapter());
+      }
+      if (!Hive.isAdapterRegistered(7)) {
+        Hive.registerAdapter(AlbumModelAdapter());
+      }
       // TODO(M4): Hive.registerAdapter(TagModelAdapter());
     } catch (e, st) {
       debugPrint('HiveService.registerAdapters 失败: $e\n$st');

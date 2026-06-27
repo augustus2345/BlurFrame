@@ -408,7 +408,11 @@
 
 ## M3 — 影集 ⬜
 
-- [ ] **M3-T1** `Album` model `@HiveType(typeId: 7)`
+- [x] **M3-T1** `Album` model `@HiveType(typeId: 7)` + `AlbumLayout` `@HiveType(typeId: 11)` + `copyWith()` + `build_runner` 生成 + 注册到 `HiveService` + 11 个 roundtrip 测试
+  - `AlbumModel`: id / name / coverPhotoId / photoIds / createdAt / layout 共 6 字段
+  - `AlbumLayout`: grid / magazine / collage / polaroid 共 4 种版式
+  - `HiveService.registerAdapters()` 接入（typeId 7 + 11，幂等守卫）
+  - **完成时间**: 2026-06-27
 - [ ] **M3-T2** `AlbumRepository` 完整 CRUD
 - [ ] **M3-T3** 影集列表页（2 列，封面缩略图）
 - [ ] **M3-T4** 新建影集 sheet（名称 + 选照片 + 版式）
