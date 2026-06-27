@@ -11,6 +11,8 @@ import '../../features/photos/presentation/screens/photo_detail_screen.dart';
 import '../../features/photos/presentation/screens/photo_gallery_screen.dart';
 import '../../features/search/presentation/screens/search_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/tags/presentation/screens/tag_manager_screen.dart';
+import '../../features/tags/presentation/screens/tag_detail_screen.dart';
 import '../widgets/app_shell.dart';
 
 /// Top-level route names — referenced from navigation and deep-links.
@@ -26,6 +28,7 @@ abstract class AppRoute {
   static const frameEditor = '/frames/editor';
   static const albumDetail = '/albums/:id';
   static const albumCreate = '/albums/create';
+  static const tagDetail = '/tags/:id';
   static const cleanup = '/cleanup';
 }
 
@@ -100,6 +103,25 @@ GoRouter _buildRouter() {
                   return MaterialPage<void>(
                     key: state.pageKey,
                     child: AlbumDetailScreen(albumId: albumId),
+                  );
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/tags',
+            pageBuilder: (_, __) => const NoTransitionPage(
+              child: TagManagerScreen(),
+            ),
+            routes: [
+              GoRoute(
+                path: ':id',
+                parentNavigatorKey: rootNavigatorKey,
+                pageBuilder: (context, state) {
+                  final tagId = state.pathParameters['id'] ?? '';
+                  return MaterialPage<void>(
+                    key: state.pageKey,
+                    child: TagDetailScreen(tagId: tagId),
                   );
                 },
               ),

@@ -507,7 +507,27 @@
   - **验证**: `flutter analyze` → **2 info trailing comma（非阻塞）** | `flutter test` → **417/417 通过**（原 397 + 20 新）
   - **预估**: 25 min
   - **完成时间**: 2026-06-27
-- [ ] **M4-T3** 标签管理页
+- [x] **M4-T3** 标签管理页
+  - 新增 5 个 lib 文件 + 3 个 test 文件：
+    - `lib/features/tags/presentation/providers/tag_list_provider.dart` — `TagListNotifier`（与 AlbumListNotifier 同模式：build 同步返回空 / refresh 走 AsyncValue.guard）
+    - `lib/features/tags/presentation/providers/tag_detail_provider.dart` — `TagDetailState` + `TagDetailNotifier`（load/rename/setColor/delete）
+    - `lib/features/tags/presentation/widgets/tag_list_item.dart` — 单格 Chip：左侧彩色圆点 + 名称 + 使用量（>0 时显示）
+    - `lib/features/tags/presentation/screens/tag_manager_screen.dart` — 标签管理页：4 态（loading/error/empty/success）+ FAB 新建标签 sheet（名称 + 12 颜色选择）
+    - `lib/features/tags/presentation/screens/tag_detail_screen.dart` — 标签详情页：修改名称（编辑态切换）/ 修改颜色（10 预设色）/ 删除（TagInUseException 保护）
+  - 修改 `lib/core/router/app_router.dart`：注册 `/tags` ShellRoute（顶层） + `/tags/:id` 详情路由（parentNavigatorKey: rootNavigatorKey 沉浸式）
+  - 测试（23 个新增）：
+    - `test/features/tags/tag_list_provider_test.dart` — **4 个用例**：build 空 / refresh 加载 / refresh 错误 / refresh 幂等
+    - `test/features/tags/tag_list_item_test.dart` — **6 个用例**：名称显示 / 使用量显示 / usageCount=0 隐藏 / 颜色圆点 / onTap 回调 / 无 onTap 不抛错
+    - `test/features/tags/tag_manager_screen_test.dart` — **7 个用例**：loading/error/empty/success 4 态 / FAB 打开新建 sheet / sheet 输入创建 / appBar 标题
+  - **M4-T3 功能可用度**：
+    - **标签列表** ✅ 完整：按创建时间倒序，4 态显式
+    - **新建标签** ✅ 完整：底部 sheet → 名称 + 颜色 → repo.create
+    - **标签详情（修改/删除）** ✅ 完整：点击列表项 → TagDetailScreen → rename/setColor/delete
+    - **删除保护** ✅ 完整：被引用时抛 `TagInUseException` → snackbar 提示
+    - **颜色预览圆点** ✅ 完整：ListTile leading 彩色圆点
+  - **验证**: `flutter analyze` → **No issues found on M4-T3 files** | `flutter test` → **434/434 通过**（全量）
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-27
 - [ ] **M4-T4** Lightroom 风格选择器（已选 + 全部 + 搜索）
 - [ ] **M4-T5** `PhotoModel` 加 **`@HiveField(7) starRating: int`**（0–5，CLAUDE.md §7.7：紧跟现有 0–6 之后；同步更新 `hive_service.registerAdapters` 与 7 个 `photo_model_test.dart` 字段数）
 - [ ] **M4-T6** 照片详情页"加星"交互：5 颗可点星标 → 写回 `PhotoModel.starRating`
