@@ -444,7 +444,17 @@
   - **验证**: `flutter analyze` → **No issues found on M3-T4 changed files** | `flutter test` → **64/64 通过**（54 旧 + 10 新）
   - **预估**: 30 min
   - **完成时间**: 2026-06-27
-- [ ] **M3-T5** 详情页：版式 `autoLayout` + 手动 1/2/3/4 宫格
+- [x] **M3-T5** 详情页：版式 `autoLayout` + 手动 1/2/3/4 宫格
+  - 新增 2 个 lib 文件 + 1 个 test 文件：
+    - `lib/features/albums/presentation/providers/album_detail_provider.dart` — `albumByIdProvider`（watch `albumListProvider`，用 `hasValue` 守卫避免 `AsyncError` 抛错）
+    - `lib/features/albums/presentation/screens/album_detail_screen.dart` — 4 态（loading/error/empty/success）+ `autoLayout(N)` 自动选宫格（1/2/4/2）+ `PopupMenuButton` 手动切换 1/2/3/4 宫格 + 点击照片跳转 `/photo/:id`
+  - 修改：
+    - `lib/core/router/app_router.dart` — 注册 `/albums/:id` 子路由（`parentNavigatorKey: rootNavigatorKey` 沉浸式）
+    - `lib/features/albums/presentation/screens/album_list_screen.dart` — 替换 `TODO(M3-T5)` 为 `context.push('/albums/${album.id}')`
+  - 测试 `test/features/albums/album_detail_screen_test.dart`：**16 个用例**（loading/error/不存在/empty/1张1宫格/2张2宫格/5+张2列/手动切换4宫格/点击跳转/AppBar显示名称 + 6 个 `autoLayout` 纯函数测试）
+  - **验证**: `flutter analyze` → **0 errors on M3-T5 files** | `flutter test` → **379/379 通过**（原 363 + 16 新）
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-27
 - [ ] **M3-T6** 拖拽重排（`ReorderableListView` 持久化）
 - [ ] **M3-T7** 换封面
 - [ ] **M3-T8** 测试：AlbumRepository

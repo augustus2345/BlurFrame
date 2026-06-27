@@ -127,7 +127,7 @@ class _AlbumGrid extends ConsumerWidget {
           album: album,
           thumbnailLoader: thumbnailLoader,
           onTap: () {
-            // TODO(M3-T5): navigate to detail
+            context.push('/albums/${album.id}');
           },
         );
       },

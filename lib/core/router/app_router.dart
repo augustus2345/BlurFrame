@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/albums/presentation/screens/album_create_screen.dart';
+import '../../features/albums/presentation/screens/album_detail_screen.dart';
 import '../../features/albums/presentation/screens/album_list_screen.dart';
 import '../../features/frames/presentation/screens/frame_template_editor_screen.dart';
 import '../../features/frames/presentation/screens/frame_template_list_screen.dart';
@@ -90,6 +91,17 @@ GoRouter _buildRouter() {
                 pageBuilder: (_, __) => const MaterialPage<void>(
                   child: AlbumCreateScreen(),
                 ),
+              ),
+              GoRoute(
+                path: ':id',
+                parentNavigatorKey: rootNavigatorKey,
+                pageBuilder: (context, state) {
+                  final albumId = state.pathParameters['id'] ?? '';
+                  return MaterialPage<void>(
+                    key: state.pageKey,
+                    child: AlbumDetailScreen(albumId: albumId),
+                  );
+                },
               ),
             ],
           ),
