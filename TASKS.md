@@ -413,7 +413,18 @@
   - `AlbumLayout`: grid / magazine / collage / polaroid 共 4 种版式
   - `HiveService.registerAdapters()` 接入（typeId 7 + 11，幂等守卫）
   - **完成时间**: 2026-06-27
-- [ ] **M3-T2** `AlbumRepository` 完整 CRUD
+- [x] **M3-T2** `AlbumRepository` 完整 CRUD
+  - `AlbumRepository`：生产构造（`HiveService.albums`）+ 测试入口 `fromBox(Box)` + 完整 CRUD（`getAll` 倒序 / `getById` / `create` / `rename` / `addPhotos` / `removePhotos` / `reorderPhotos` / `setCover` / `setLayout` / `delete`）
+  - `create`：自动生成 uuid id、auto-set coverPhotoId（空影集第一张为封面）、`createdAt` = now
+  - `addPhotos`：追加到末尾；空封面自动升格第一张为封面
+  - `removePhotos`：移除后若原封面被删，自动换第一张；全删清空封面
+  - `reorderPhotos`：直接替换完整列表；封面不在新列表时清空
+  - `setCover`：`newCoverPhotoId` 不在 `photoIds` 中时 no-op
+  - 所有 mutation：id 不存在时 no-op（不抛错）
+  - 测试 `test/features/albums/album_repository_test.dart`：**29 个用例**（getAll ×2 / getById ×2 / create ×4 / rename ×2 / addPhotos ×4 / removePhotos ×4 / reorderPhotos ×3 / setCover ×3 / setLayout ×2 / delete ×2）
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **338/338 通过**（原 299 + 39 新）
+  - **预估**: 25 min
+  - **完成时间**: 2026-06-27
 - [ ] **M3-T3** 影集列表页（2 列，封面缩略图）
 - [ ] **M3-T4** 新建影集 sheet（名称 + 选照片 + 版式）
 - [ ] **M3-T5** 详情页：版式 `autoLayout` + 手动 1/2/3/4 宫格
