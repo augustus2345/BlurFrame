@@ -618,7 +618,23 @@
 
 ## M5 — 批量 + 删除 tab ⬜（删除 tab 合并原"清理模式"，对齐 mockup v3 / PRD v0.2）
 
-- [ ] **M5-T1** 批量套模版（含进度 sheet、并发控制 2、完成后 `usageCount += N`）
+- [x] **M5-T1** 批量套模版（含进度 sheet、并发控制 2、完成后 `usageCount += N`）
+  - 新增 4 个文件：
+    - `lib/features/photos/presentation/providers/batch_apply_template_provider.dart` — `BatchApplyTemplateState`（sealed class：Initial / Processing / Done）+ `BatchApplyTemplateNotifier`（并发控制 2 + 进度跟踪 + 结果统计）
+    - `lib/features/photos/presentation/widgets/image_saver.dart` — `ImageSaver` 抽象接口 + `GalImageSaver` 生产实现（M2-T6 的 ApplyTemplateNotifier 也有同样抽象，但重复定义更方便测试注入）
+    - `lib/features/photos/presentation/widgets/batch_apply_template_sheet.dart` — 批量套模版进度展示 Sheet（当前未直接使用，结果在 `_BatchResultSheet` 展示）
+    - `lib/features/photos/presentation/widgets/apply_template_sheet.dart` — 新增 `showTemplatePickerSheet` 入口函数（返回选中的模板）
+  - 修改 `lib/features/photos/presentation/screens/photo_gallery_screen.dart`：
+    - 新增 `_handleBatchFrame` 方法：选择模板 → 构建 photoLoaders → 调用 `BatchApplyTemplateNotifier.applyTemplateBatch` → 显示 `_BatchResultSheet` → 完成后退出多选并刷新
+    - 新增 `_BatchResultSheet` / `_ProcessingContent` / `_DoneContent` / `_ResultChip` widget
+    - `MultiSelectAppBar` 的 `onFrame` 接入 `_handleBatchFrame`
+  - 并发控制策略：每批 2 张，使用 `Future.wait` 等待一批完成后再处理下一批，避免 OOM
+  - 进度跟踪：每批完成后更新 `BatchApplyTemplateProcessing` 状态
+  - `usageCount += N`：批量完成后一次性调用 `frameRepository.incrementUsageCount`
+  - 测试 `test/features/photos/batch_apply_template_provider_test.dart`：**9 个用例**覆盖状态类 equality / progress 计算 / notifier 初始态 / reset / empty / success / failure 路径
+  - **验证**: `flutter analyze` → **0 errors** | `flutter test` → **505/505 通过**
+  - **预估**: 50 min
+  - **完成时间**: 2026-06-27
 - [ ] **M5-T2** 批量打标签
 - [ ] **M5-T3** **批量加星**（新加，依赖 M4-T5 的 `starRating` 字段）
 - [ ] **M5-T4** 批量加入影集

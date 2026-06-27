@@ -211,3 +211,24 @@ class _UsageBadge extends StatelessWidget {
     );
   }
 }
+
+/// 模板选择 BottomSheet（返回选中的模板，而非通过回调）。
+///
+/// 用于批量套模版场景，直接返回选中的模板。
+Future<FrameTemplate?> showTemplatePickerSheet({
+  required BuildContext context,
+}) async {
+  FrameTemplate? selected;
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) => ApplyTemplateSheet(
+      onSelect: (template) {
+        selected = template;
+        Navigator.of(sheetContext).pop();
+      },
+    ),
+  );
+  return selected;
+}

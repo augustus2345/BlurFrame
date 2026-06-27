@@ -1,14 +1,21 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/widgets/empty_state.dart';
+import '../../../frames/data/repositories/frame_repository.dart';
 import '../../data/models/photo_model.dart';
 import '../../data/photo_permission_status.dart';
 import '../providers/asset_thumbnail_loader_provider.dart';
+import '../providers/batch_apply_template_provider.dart';
+import '../providers/full_image_loader_provider.dart';
 import '../providers/multi_select_provider.dart';
 import '../providers/photo_permission_provider.dart';
 import '../providers/photos_provider.dart';
+import '../widgets/apply_template_sheet.dart';
 import '../widgets/multi_select_app_bar.dart';
 import '../widgets/photo_grid_item.dart';
 import 'permission_request_screen.dart';
@@ -75,6 +82,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                 }
               },
               onDelete: () => _showDeleteConfirmation(context, ref),
+              onFrame: () => _handleBatchFrame(context, ref),
             )
           : AppBar(
               title: const Text('相册'),
@@ -99,7 +107,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
 
   /// 批量删除确认弹窗。
   Future<void> _showDeleteConfirmation(
-      BuildContext context, WidgetRef ref) async {
+      BuildContext context, WidgetRef ref,) async {
     final selectedIds = ref.read(multiSelectProvider).selectedIds;
     if (selectedIds.isEmpty) return;
 
@@ -129,8 +137,49 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
       }
       // 退出多选模式并刷新列表
       ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
-      ref.read(photosProvider.notifier).refresh();
+      unawaited(ref.read(photosProvider.notifier).refresh());
     }
+  }
+
+  /// 批量套模版.
+  Future<void> _handleBatchFrame(BuildContext context, WidgetRef ref) async {
+    final selectedIds = ref.read(multiSelectProvider).selectedIds;
+    if (selectedIds.isEmpty) return;
+
+    // 先选择模板
+    final template = await showTemplatePickerSheet(context: context);
+    if (template == null) return;
+
+    // 准备 photoLoaders
+    final fullImageLoader = ref.read(fullImageLoaderProvider);
+    final photoLoaders = <String, Future<Uint8List?> Function()>{};
+    for (final id in selectedIds) {
+      photoLoaders[id] = () => fullImageLoader(id);
+    }
+
+    // 重置状态并启动批量处理
+    ref.read(batchApplyTemplateProvider.notifier).reset();
+    final frameRepo = ref.read(frameRepositoryProvider);
+    await ref.read(batchApplyTemplateProvider.notifier).applyTemplateBatch(
+          template: template,
+          photoLoaders: photoLoaders,
+          frameRepository: frameRepo,
+        );
+
+    if (!context.mounted) return;
+
+    // 显示结果 Sheet
+    final state = ref.read(batchApplyTemplateProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      isDismissible: state is! BatchApplyTemplateProcessing,
+      enableDrag: state is! BatchApplyTemplateProcessing,
+      builder: (ctx) => _BatchResultSheet(state: state),
+    );
+
+    // 完成后退出多选模式并刷新
+    ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
+    unawaited(ref.read(photosProvider.notifier).refresh());
   }
 
   /// 权限分派：usable → 4 态网格；其余 → 引导屏。
@@ -264,6 +313,190 @@ class _PhotoGrid extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+}
+
+/// 批量套模版结果展示 Sheet.
+class _BatchResultSheet extends StatelessWidget {
+  const _BatchResultSheet({required this.state});
+
+  final BatchApplyTemplateState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 拖拽指示条
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 根据状态显示不同内容
+          _buildStateContent(state),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStateContent(BatchApplyTemplateState s) {
+    if (s is BatchApplyTemplateProcessing) {
+      return _ProcessingContent(state: s);
+    } else if (s is BatchApplyTemplateDone) {
+      return _DoneContent(state: s);
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+/// 进行中内容.
+class _ProcessingContent extends StatelessWidget {
+  const _ProcessingContent({required this.state});
+
+  final BatchApplyTemplateProcessing state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        const CircularProgressIndicator(),
+        const SizedBox(height: 16),
+        Text(
+          '正在应用 "${state.templateName}"',
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${state.current} / ${state.total}',
+          style: theme.textTheme.bodyLarge,
+        ),
+        const SizedBox(height: 16),
+        LinearProgressIndicator(
+          value: state.progress,
+          key: const Key('batch_apply_progress_bar'),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (state.successCount > 0) ...[
+              const Icon(Icons.check_circle, color: Colors.green, size: 16),
+              const SizedBox(width: 4),
+              Text('${state.successCount}'),
+              const SizedBox(width: 16),
+            ],
+            if (state.failureCount > 0) ...[
+              const Icon(Icons.error, color: Colors.red, size: 16),
+              const SizedBox(width: 4),
+              Text('${state.failureCount}'),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 完成内容.
+class _DoneContent extends StatelessWidget {
+  const _DoneContent({required this.state});
+
+  final BatchApplyTemplateDone state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        Icon(
+          state.failureCount == 0 ? Icons.check_circle : Icons.warning,
+          size: 48,
+          color: state.failureCount == 0 ? Colors.green : Colors.orange,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          state.failureCount == 0
+              ? '批量应用完成'
+              : '批量应用完成（部分失败）',
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '模板：${state.templateName}',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _ResultChip(
+              icon: Icons.check_circle,
+              color: Colors.green,
+              label: '成功 ${state.successCount}',
+            ),
+            if (state.failureCount > 0) ...[
+              const SizedBox(width: 16),
+              _ResultChip(
+                icon: Icons.error,
+                color: Colors.red,
+                label: '失败 ${state.failureCount}',
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 24),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('完成'),
+        ),
+      ],
+    );
+  }
+}
+
+/// 结果 chip.
+class _ResultChip extends StatelessWidget {
+  const _ResultChip({
+    required this.icon,
+    required this.color,
+    required this.label,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(color: color)),
+        ],
+      ),
     );
   }
 }
