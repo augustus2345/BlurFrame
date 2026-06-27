@@ -188,6 +188,57 @@ void main() {
     });
   });
 
+  // ─── ExifSummary equality + isEmpty ───────────────────────────────────────
+
+  group('ExifSummary equality + isEmpty', () {
+    test('two summaries with same fields are equal', () {
+      final a = ExifSummary(
+        make: 'Canon',
+        model: 'EOS R5',
+        dateTimeOriginal: DateTime(2024, 6, 20),
+        fNumber: 1.8,
+        exposureTime: 0.005,
+        iso: 400,
+        focalLength: 50.0,
+      );
+      final b = ExifSummary(
+        make: 'Canon',
+        model: 'EOS R5',
+        dateTimeOriginal: DateTime(2024, 6, 20),
+        fNumber: 1.8,
+        exposureTime: 0.005,
+        iso: 400,
+        focalLength: 50.0,
+      );
+
+      expect(a, equals(b));
+      expect(a.hashCode, equals(b.hashCode));
+    });
+
+    test('two summaries with different fields are not equal', () {
+      const a = ExifSummary(make: 'Canon');
+      const b = ExifSummary(make: 'Sony');
+
+      expect(a, isNot(equals(b)));
+    });
+
+    test('isEmpty is true when all 7 fields are null', () {
+      const summary = ExifSummary();
+      expect(summary.isEmpty, isTrue);
+    });
+
+    test('isEmpty is false when any single field is set', () {
+      const summary = ExifSummary(make: 'Canon');
+      expect(summary.isEmpty, isFalse);
+    });
+
+    test('empty static constant is identical to all-null instance', () {
+      const summary = ExifSummary();
+      expect(summary, equals(ExifSummary.empty));
+      expect(summary.hashCode, equals(ExifSummary.empty.hashCode));
+    });
+  });
+
   // ─── ExifDatasource.parseBytes ────────────────────────────────────────────
 
   group('ExifDatasource.parseBytes', () {

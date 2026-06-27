@@ -240,8 +240,10 @@
   - **完成时间**: 2026-06-26
 - [x] **M1-T9** 4 态显式 + 测试覆盖完整：`pumpAndSettle` + `InteractiveViewer` hang 修复（改用 `pump()` + 1s 动画超时，CLAUDE.md §7.11）；`package:blurframe` → `package:photo_beauty` 批量修复；`PhotoDetailContent` 测试补 `ProviderScope`；`ExifPanel` 缺失字段行为修正；`widget_test.dart` 重写；全 suite **185/185 通过**，analyze **0 errors**
   - **完成时间**: 2026-06-26
+- [x] **M1-T10** 测试覆盖完整：审计确认 `PhotoRepository`（7 CRUD + 8 loadAll / 覆盖 4 类降级）/ `ExifDatasource`（17 fromTags + 3 parseBytes + 3 parse + 5 equality/isEmpty）/ `PhotoGridItem`（10 个 widget 测试覆盖 tap/placeholder/Image/1:1/多选勾选）已完整；补充 `ExifSummary` equality + hashCode + isEmpty 直接单元测试（5 个用例）；全 suite **190/190 通过**，analyze **13 info**（非阻塞风格建议）
+  - **完成时间**: 2026-06-27
 
-**完成时间**: 2026-06-23
+**完成时间**: 2026-06-27
 
 ---
 
