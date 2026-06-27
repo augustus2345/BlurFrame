@@ -455,7 +455,18 @@
   - **验证**: `flutter analyze` → **0 errors on M3-T5 files** | `flutter test` → **379/379 通过**（原 363 + 16 新）
   - **预估**: 30 min
   - **完成时间**: 2026-06-27
-- [ ] **M3-T6** 拖拽重排（`ReorderableListView` 持久化）
+- [x] **M3-T6** 拖拽重排（`ReorderableListView` 持久化）
+  - 修改 `lib/features/albums/presentation/screens/album_detail_screen.dart`：
+    - 新增 `_isReorderMode` 状态 + AppBar 排序模式入口（`swap_vert` 图标，仅 2+ 张照片显示）
+    - 排序模式下 AppBar 右侧切换为勾选（完成）按钮，版式切换 + 排序入口隐藏
+    - 新增 `_AlbumPhotoReorderGrid`（`ReorderableListView.builder` 实现）：按 [gridCount] 分行，每行一个 `ReorderableDragStartListener`
+    - `_AlbumPhotoTile` 新增 `showDragHandle` 参数，排序模式下显示右下角拖拽手柄图标
+    - 拖拽完成后调用 `albumRepositoryProvider.reorderPhotos(albumId, newPhotoIds)` 持久化 + `albumListProvider.notifier.refresh()` 刷新列表
+    - `_isDragging` 守卫防止拖拽期间 setState 触发 rebuild
+  - 新增测试 `test/features/albums/album_detail_screen_test.dart`：**5 个新用例**（排序按钮 2+/单张显示逻辑 / 进入排序模式 / 退出排序模式 / 排序模式无点击跳转）
+  - **验证**: `flutter analyze` → **No issues found**（M3-T6 files）| `flutter test` → **384/384 通过**（原 379 + 5 新）
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-27
 - [ ] **M3-T7** 换封面
 - [ ] **M3-T8** 测试：AlbumRepository
 

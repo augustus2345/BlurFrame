@@ -38,6 +38,9 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
   /// 当前手动选择的宫格数。null 表示跟随 autoLayout。
   int? _manualGridCount;
 
+  /// 是否处于拖拽重排模式。
+  bool _isReorderMode = false;
+
   @override
   Widget build(BuildContext context) {
     final album = ref.watch(albumByIdProvider(widget.albumId));
@@ -70,20 +73,41 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
       appBar: AppBar(
         title: Text(album.name),
         actions: [
-          // 版式切换按钮
-          PopupMenuButton<int>(
-            icon: const Icon(Icons.grid_on),
-            tooltip: '切换宫格',
-            onSelected: (count) {
-              setState(() => _manualGridCount = count == effectiveGridCount ? null : count);
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 1, child: Text('1 宫格')),
-              const PopupMenuItem(value: 2, child: Text('2 宫格')),
-              const PopupMenuItem(value: 3, child: Text('3 宫格')),
-              const PopupMenuItem(value: 4, child: Text('4 宫格')),
-            ],
-          ),
+          if (_isReorderMode) ...[
+            // 退出排序按钮
+            IconButton(
+              icon: const Icon(Icons.check),
+              tooltip: '完成排序',
+              onPressed: () {
+                setState(() => _isReorderMode = false);
+              },
+            ),
+          ] else ...[
+            // 版式切换按钮（非排序模式下显示）
+            PopupMenuButton<int>(
+              icon: const Icon(Icons.grid_on),
+              tooltip: '切换宫格',
+              onSelected: (count) {
+                setState(() => _manualGridCount =
+                    count == effectiveGridCount ? null : count,);
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 1, child: Text('1 宫格')),
+                const PopupMenuItem(value: 2, child: Text('2 宫格')),
+                const PopupMenuItem(value: 3, child: Text('3 宫格')),
+                const PopupMenuItem(value: 4, child: Text('4 宫格')),
+              ],
+            ),
+            // 拖拽排序按钮（2+张照片时显示）
+            if (photoIds.length > 1)
+              IconButton(
+                icon: const Icon(Icons.swap_vert),
+                tooltip: '拖拽排序',
+                onPressed: () {
+                  setState(() => _isReorderMode = true);
+                },
+              ),
+          ],
         ],
       ),
       body: photoIds.isEmpty
@@ -92,12 +116,24 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
               title: '影集为空',
               message: '还没有添加照片',
             )
-          : _AlbumPhotoGrid(
-              key: ValueKey('${album.id}_${effectiveGridCount}_$_manualGridCount'),
-              photoIds: photoIds,
-              gridCount: effectiveGridCount,
-              albumLayout: album.layout,
-            ),
+          : _isReorderMode
+              ? _AlbumPhotoReorderGrid(
+                  key: ValueKey('${album.id}_reorder'),
+                  albumId: album.id,
+                  photoIds: photoIds,
+                  gridCount: effectiveGridCount,
+                  albumLayout: album.layout,
+                  onReorderComplete: () {
+                    ref.read(albumListProvider.notifier).refresh();
+                  },
+                )
+              : _AlbumPhotoGrid(
+                  key: ValueKey(
+                      '${album.id}_${effectiveGridCount}_$_manualGridCount',),
+                  photoIds: photoIds,
+                  gridCount: effectiveGridCount,
+                  albumLayout: album.layout,
+                ),
     );
   }
 }
@@ -193,41 +229,241 @@ class _AlbumPhotoGrid extends ConsumerWidget {
   }
 }
 
+/// 影集照片拖拽重排视图（ReorderableListView 实现）。
+///
+/// 每行[row]为一个可拖拽单元，按 [gridCount] 分组照片。
+/// 拖拽完成后调用 [onReorderComplete] 通知持久化。
+class _AlbumPhotoReorderGrid extends ConsumerStatefulWidget {
+  const _AlbumPhotoReorderGrid({
+    required this.albumId,
+    required this.photoIds,
+    required this.gridCount,
+    required this.albumLayout,
+    required this.onReorderComplete,
+    super.key,
+  });
+
+  final String albumId;
+  final List<String> photoIds;
+  final int gridCount;
+  final AlbumLayout albumLayout;
+  final VoidCallback onReorderComplete;
+
+  @override
+  ConsumerState<_AlbumPhotoReorderGrid> createState() =>
+      _AlbumPhotoReorderGridState();
+}
+
+class _AlbumPhotoReorderGridState
+    extends ConsumerState<_AlbumPhotoReorderGrid> {
+  late List<String> _localPhotoIds;
+  // 用于防止拖拽期间触发 rebuild
+  bool _isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _localPhotoIds = List.from(widget.photoIds);
+  }
+
+  @override
+  void didUpdateWidget(_AlbumPhotoReorderGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 仅在非拖拽状态下同步外部 photoIds
+    if (!_isDragging && widget.photoIds != _localPhotoIds) {
+      _localPhotoIds = List.from(widget.photoIds);
+    }
+  }
+
+  /// 将 flat photoIds 按 [gridCount] 分成行列表。
+  List<List<String>> _rows() {
+    final rows = <List<String>>[];
+    for (var i = 0; i < _localPhotoIds.length; i += widget.gridCount) {
+      final end =
+          (i + widget.gridCount > _localPhotoIds.length)
+              ? _localPhotoIds.length
+              : i + widget.gridCount;
+      rows.add(_localPhotoIds.sublist(i, end));
+    }
+    return rows;
+  }
+
+  Future<void> _onReorderItem(int oldRow, int newRow) async {
+    final rows = _rows();
+    if (oldRow < 0 ||
+        oldRow >= rows.length ||
+        newRow < 0 ||
+        newRow >= rows.length) {
+      return;
+    }
+
+    final rowToMove = rows.removeAt(oldRow);
+    rows.insert(newRow, rowToMove);
+
+    // 重建 flat photoIds
+    final newPhotoIds = rows.expand((row) => row).toList();
+
+    // 持久化到 Hive
+    await ref.read(albumRepositoryProvider).reorderPhotos(
+          widget.albumId,
+          newPhotoIds,
+        );
+
+    setState(() {
+      _localPhotoIds = newPhotoIds;
+    });
+
+    widget.onReorderComplete();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnailLoader = ref.watch(assetThumbnailLoaderProvider);
+    final rows = _rows();
+
+    return ReorderableListView.builder(
+      padding: const EdgeInsets.all(2),
+      itemCount: rows.length,
+      buildDefaultDragHandles: false,
+      proxyDecorator: (child, index, animation) {
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) {
+            final elevationValue =
+                Curves.easeInOut.transform(animation.value);
+            return Material(
+              elevation: 8 * elevationValue,
+              color: Colors.transparent,
+              shadowColor: Colors.black54,
+              child: child,
+            );
+          },
+          child: child,
+        );
+      },
+      onReorderStart: (_) {
+        _isDragging = true;
+      },
+      onReorderEnd: (_) {
+        _isDragging = false;
+      },
+      onReorderItem: _onReorderItem,
+      itemBuilder: (context, row) {
+        final photosInRow = rows[row];
+        return _ReorderablePhotoRow(
+          key: ValueKey('reorder_row_${row}_${photosInRow.join(',')}'),
+          rowIndex: row,
+          photosInRow: photosInRow,
+          gridCount: widget.gridCount,
+          thumbnailLoader: thumbnailLoader,
+        );
+      },
+    );
+  }
+}
+
+/// 拖拽重排中的单行照片。
+class _ReorderablePhotoRow extends StatelessWidget {
+  const _ReorderablePhotoRow({
+    required this.rowIndex,
+    required this.photosInRow,
+    required this.gridCount,
+    required this.thumbnailLoader,
+    super.key,
+  });
+
+  final int rowIndex;
+  final List<String> photosInRow;
+  final int gridCount;
+  final Future<Uint8List?> Function(String assetId) thumbnailLoader;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: MediaQuery.of(context).size.width / gridCount,
+      child: Row(
+        children: [
+          for (var col = 0; col < gridCount; col++)
+            Expanded(
+              child: col < photosInRow.length
+                  ? ReorderableDragStartListener(
+                      index: rowIndex * gridCount + col,
+                      child: _AlbumPhotoTile(
+                        key: ValueKey('reorder_tile_${photosInRow[col]}'),
+                        photoId: photosInRow[col],
+                        thumbnailLoader: thumbnailLoader,
+                        showDragHandle: true,
+                      ),
+                    )
+                  : Container(color: Colors.transparent),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 影集详情页单张照片格子。
 class _AlbumPhotoTile extends StatelessWidget {
   const _AlbumPhotoTile({
     required this.photoId,
     required this.thumbnailLoader,
     this.onTap,
+    this.showDragHandle = false,
     super.key,
   });
 
   final String photoId;
   final Future<Uint8List?> Function(String assetId) thumbnailLoader;
   final VoidCallback? onTap;
+  /// 排序模式下显示拖拽手柄图标。
+  final bool showDragHandle;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: FutureBuilder<Uint8List?>(
-        future: thumbnailLoader(photoId),
-        builder: (context, snapshot) {
-          final bytes = snapshot.data;
-          if (snapshot.connectionState != ConnectionState.done || bytes == null) {
-            return Container(
-              color: Theme.of(context).dividerColor,
-              child: const Center(
-                child: Icon(Icons.photo, color: Colors.white54),
+      onTap: showDragHandle ? null : onTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          FutureBuilder<Uint8List?>(
+            future: thumbnailLoader(photoId),
+            builder: (context, snapshot) {
+              final bytes = snapshot.data;
+              if (snapshot.connectionState != ConnectionState.done ||
+                  bytes == null) {
+                return Container(
+                  color: Theme.of(context).dividerColor,
+                  child: const Center(
+                    child: Icon(Icons.photo, color: Colors.white54),
+                  ),
+                );
+              }
+              return Image.memory(
+                bytes,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+              );
+            },
+          ),
+          if (showDragHandle)
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.black45,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Icon(
+                  Icons.drag_handle,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
-            );
-          }
-          return Image.memory(
-            bytes,
-            fit: BoxFit.cover,
-            gaplessPlayback: true,
-          );
-        },
+            ),
+        ],
       ),
     );
   }

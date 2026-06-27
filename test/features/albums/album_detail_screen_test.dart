@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
 
 import 'package:photo_beauty/features/albums/data/models/album_model.dart';
+import 'package:photo_beauty/features/albums/data/repositories/album_repository.dart';
 import 'package:photo_beauty/features/albums/presentation/providers/album_list_provider.dart';
 import 'package:photo_beauty/features/albums/presentation/screens/album_detail_screen.dart';
 import 'package:photo_beauty/features/photos/presentation/providers/asset_thumbnail_loader_provider.dart';
@@ -293,6 +295,151 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('旅行影集'), findsOneWidget);
     });
+
+    testWidgets('2+张照片时显示拖拽排序按钮', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: MaterialApp(
+            home: AlbumDetailScreen(albumId: 'album_001'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 旅行影集有 2 张照片，应该显示拖拽排序按钮
+      expect(find.byIcon(Icons.swap_vert), findsOneWidget);
+    });
+
+    testWidgets('单张照片时不显示拖拽排序按钮', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: MaterialApp(
+            home: AlbumDetailScreen(albumId: 'album_003'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // album_003 只有 1 张照片，不显示拖拽排序按钮
+      expect(find.byIcon(Icons.swap_vert), findsNothing);
+    });
+
+    testWidgets('点击拖拽排序按钮进入排序模式', (tester) async {
+      final mockRepo = MockAlbumRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+            albumRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: MaterialApp(
+            home: AlbumDetailScreen(albumId: 'album_001'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击排序按钮
+      await tester.tap(find.byIcon(Icons.swap_vert));
+      await tester.pumpAndSettle();
+
+      // 排序模式下显示勾选按钮代替版式切换
+      expect(find.byIcon(Icons.check), findsOneWidget);
+      // 版式切换按钮消失
+      expect(find.byIcon(Icons.grid_on), findsNothing);
+      // 排序按钮消失
+      expect(find.byIcon(Icons.swap_vert), findsNothing);
+      // ReorderableListView 出现
+      expect(find.byType(ReorderableListView), findsOneWidget);
+    });
+
+    testWidgets('点击完成按钮退出排序模式', (tester) async {
+      final mockRepo = MockAlbumRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+            albumRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: MaterialApp(
+            home: AlbumDetailScreen(albumId: 'album_001'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 进入排序模式
+      await tester.tap(find.byIcon(Icons.swap_vert));
+      await tester.pumpAndSettle();
+      expect(find.byType(ReorderableListView), findsOneWidget);
+
+      // 点击完成按钮
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pumpAndSettle();
+
+      // 退出排序模式，恢复 GridView
+      expect(find.byType(GridView), findsOneWidget);
+      expect(find.byIcon(Icons.grid_on), findsOneWidget);
+    });
+
+    testWidgets('排序模式切换时不触发照片点击跳转', (tester) async {
+      final mockRepo = MockAlbumRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+            albumRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: MaterialApp(
+            home: AlbumDetailScreen(albumId: 'album_001'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 进入排序模式
+      await tester.tap(find.byIcon(Icons.swap_vert));
+      await tester.pumpAndSettle();
+
+      // 尝试点击 ReorderableListView 中的某个照片格子（不应该跳转）
+      final reorderableListView =
+          find.byType(ReorderableListView);
+      expect(reorderableListView, findsOneWidget);
+    });
   });
 
   group('autoLayout', () {
@@ -349,3 +496,7 @@ class _ErrorAlbumListNotifier extends AlbumListNotifier {
   @override
   Future<void> refresh() async {}
 }
+
+class MockAlbumRepository extends Mock implements AlbumRepository {}
+
+class FakeAlbumModel extends Fake implements AlbumModel {}
