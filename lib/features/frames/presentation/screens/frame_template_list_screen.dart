@@ -146,11 +146,9 @@ class _FrameTemplateListScreenState
             templates: templates,
             onDuplicate: _duplicateTemplate,
             onDelete: _deleteTemplate,
-            onEdit: () {
-              // TODO(M2-T4): 跳 /frames/editor 推编辑器。编辑器完成前先提示。
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('编辑器功能即将推出')),
-              );
+            onEdit: (template) {
+              // M2-T4：跳编辑器；只对用户模板可见（菜单已屏蔽内置）。
+              context.push('${AppRoute.frameEditor}?templateId=${template.id}');
             },
           );
         },
@@ -171,7 +169,7 @@ class _FrameTemplateGrid extends StatelessWidget {
   final List<FrameTemplate> templates;
   final Future<void> Function(String sourceId) onDuplicate;
   final Future<void> Function(FrameTemplate template) onDelete;
-  final VoidCallback onEdit;
+  final void Function(FrameTemplate template) onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +191,7 @@ class _FrameTemplateGrid extends StatelessWidget {
           template: template,
           onDuplicate: () => onDuplicate(template.id),
           onDelete: () => onDelete(template),
-          onEdit: onEdit,
+          onEdit: () => onEdit(template),
         );
       },
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/albums/presentation/screens/album_list_screen.dart';
+import '../../features/frames/presentation/screens/frame_template_editor_screen.dart';
 import '../../features/frames/presentation/screens/frame_template_list_screen.dart';
 import '../../features/photos/presentation/screens/photo_detail_screen.dart';
 import '../../features/photos/presentation/screens/photo_gallery_screen.dart';
@@ -49,6 +50,19 @@ GoRouter _buildRouter() {
           return MaterialPage<void>(
             key: state.pageKey,
             child: PhotoDetailScreen(assetId: assetId),
+          );
+        },
+      ),
+      // 模版编辑器（M2-T4）：顶层 GoRoute → push 沉浸编辑体验。
+      // templateId 用 query param 传：?templateId=user-1（无 = 新建）。
+      GoRoute(
+        path: AppRoute.frameEditor,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final templateId = state.uri.queryParameters['templateId'];
+          return MaterialPage<void>(
+            key: state.pageKey,
+            child: FrameTemplateEditorScreen(templateId: templateId),
           );
         },
       ),

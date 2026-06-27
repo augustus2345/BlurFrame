@@ -293,7 +293,46 @@
   - **验证**: `flutter analyze` → **No issues found on M2-T3 changed files**（21 个原有 info warning 来自 M0-M1 文件，不在 M2-T3 scope）| `flutter test` → **222/222 通过**（原 207 + 4 repo duplicate + 11 widget = 222；widget test 1 个 case 拆成多测但总数对上）
   - **预估**: 50 min
   - **完成时间**: 2026-06-27
-- [ ] **M2-T4** 模版编辑器 `/frames/editor`（push）：顶部预览 + 中部 3 层分组（每层 switch + 参数：模糊 intensity / 水印 text + EXIF / 颜色选择）+ 底部"保存模板"按钮
+- [x] **M2-T4** 模版编辑器 `/frames/editor`（push）：顶部预览 + 中部 3 层分组（每层 switch + 参数：模糊 intensity / 水印 text + EXIF / 颜色选择）+ 底部"保存模板"按钮
+  - 新增 8 个 lib 文件 + 4 个 test 文件：
+    - `lib/features/frames/presentation/providers/template_editor_notifier.dart` — `TemplateEditorState`（id / name / isBuiltIn / createdAt / 3 × (enabled, layer)） + `TemplateEditorNotifier`（`AsyncNotifier`，build 同步返回空 / `load(id)` 异步加载 / 17 个同步 set* 方法 / `save()` 生成 uuid 或保留 id + 防御内置抛 `BuiltInTemplateException`）
+    - `lib/features/frames/presentation/widgets/layer_switch_group.dart` — 通用"层"分组容器（标题 + Switch + 折叠参数区；`enabled=false` 时显示"已关闭"提示行而不销毁 state）
+    - `lib/features/frames/presentation/widgets/editor_subwidgets/blur_border_editor.dart` — 模糊边框参数：Slider intensity 0–10 + Switch "仅边缘"
+    - `lib/features/frames/presentation/widgets/editor_subwidgets/text_watermark_editor.dart` — 水印参数：TextField text + 7 位置 Dropdown + Slider fontSize 8–48 + HexColorField
+    - `lib/features/frames/presentation/widgets/editor_subwidgets/color_stripe_editor.dart` — 颜色条参数：位置 Dropdown + Slider width 0.02–0.30 + Slider cornerRadius 0–20 + HexColorField
+    - `lib/features/frames/presentation/widgets/editor_subwidgets/hex_color_field.dart` — 自定义小工具：`#AARRGGBB` / `0xAARRGGBB` 解析，非法时 inline error 但不覆盖 state；suffix 显示当前颜色色块
+    - `lib/features/frames/presentation/screens/frame_template_editor_screen.dart` — 编辑器主屏：4 态（loading / 找不到模板 / 新建空 / 已有模板）+ 实时预览（[FramePreview]） + 名称 + 3 个 LayerSwitchGroup + 底部保存按钮（内置 disabled）
+  - 修改：
+    - `lib/core/router/app_router.dart` — 注册 `/frames/editor` 顶层 GoRoute（`parentNavigatorKey: rootNavigatorKey` 沉浸式）；`templateId` 走 `?templateId=foo` query param
+    - `lib/features/frames/presentation/screens/frame_template_list_screen.dart` — `_FrameTemplateGrid.onEdit` 签名改 `(FrameTemplate) → void`，把 T3 的"编辑器功能即将推出" snackbar 替换为 `context.push('${AppRoute.frameEditor}?templateId=${template.id}')`
+  - 测试（**29 个新增**）：
+    - `test/features/frames/template_editor_notifier_test.dart`（**15 个用例**）：build 空 / load(null) 重置 / load(已有) 填充 / load(找不到) AsyncError / load 内置保留 isBuiltIn / setName / setBlurBorderEnabled / setBlurIntensity 保留 edge / 4 个 watermark set* 字段独立 / 4 个 stripe set* 字段独立 / toTemplate 过滤 disabled 层 / toTemplate 全 disabled 空 / save 新建生成 uuid / save 编辑保留 id+createdAt / save 内置抛 BuiltInTemplateException
+    - `test/features/frames/layer_switch_group_test.dart`（**4 个用例**）：enabled=true 渲染 params / enabled=false 渲染 disabled_hint / tap switch 触发回调 / 外部 enabled 切换 swap params/hint
+    - `test/features/frames/frame_template_editor_screen_test.dart`（**10 个用例**）：loading（`_LoadingEditorNotifier` override build+load）/ error 找不到模板 + retry / 新建空（viewport 800×1400 让 3 个 layer 全在屏）/ 编辑已有（load 填充 + 标题改"编辑模板"）/ 切换 blur on 实时预览 / save 新建调 repo.save + snackbar / save name 空 + 警告 snackbar / 编辑保存保留 id / 内置模板保存按钮 disabled / save 后 list provider refresh
+  - **M2-T4 功能可用度**：
+    - **顶部实时预览** ✅ 完整：`FramePreview` 接受从 state 合成的 `FrameTemplate`（`enabled` 过滤后），每层参数变化 → state 变 → 预览 rebuild
+    - **3 层分组 switch + 折叠参数区** ✅ 完整：`LayerSwitchGroup` 通用容器，关闭的层不销毁 state
+    - **模糊边框参数** ✅ 完整：intensity slider + edge switch
+    - **文字水印参数** ✅ 完整：text / 7 位置 dropdown / fontSize slider / color
+    - **颜色条参数** ✅ 完整：位置 dropdown / width slider / cornerRadius slider / color
+    - **名称编辑** ✅ 完整：顶部 TextField
+    - **保存模板** ✅ 完整：内置 disabled + 名称空校验 + 调 `repo.save` + list refresh + snackbar + pop
+    - **EXIF 字段选择** ❌ 未实现：M2-T4 范围仅含固定文本水印（text 输入框）；M2-T5 renderer 落地后由 M2-T6 在导出时引入 `{exif:dateTimeOriginal}` 标记渲染管线
+  - **关键设计决策**：
+    1. **`AsyncNotifier` 而不是 `Notifier`** — `load(id)` 涉及 Hive 读取，4 态分派（loading / error / data）天然走 `AsyncValue.when`；与 M1-T5 / M2-T3 模式一致
+    2. **每层 `enabled: bool` + 非空 layer 实例** — 关闭层时保留实例 + 切回时原值仍在；保存时 `toTemplate()` 过滤掉 disabled 层（M2-T1 schema 不动）
+    3. **`HexColorField` 不引第三方 color picker** — 用 `TextField` + hex 解析 + inline error + suffix 色块；节省依赖；M2-T4 范围内够用
+    4. **`id == null` → 新建；`id != null` → 编辑** — 不维护 mode 字段；保存时 `current.id ?? _uuid.v4()`
+    5. **`canPop` 守卫** — `if (context.canPop()) context.pop();` 防止 widget test 直接 `pumpWidget` 编辑器时无上层路由而抛"There is nothing to pop"
+    6. **加载态测试用 `_LoadingEditorNotifier` override** — `getById` 是同步的，Completer 截不断；override `build()` + `load()` 永不 resolve 保留 `AsyncLoading`（与 T3 的 `_LoadingListNotifier` 同模式）
+  - **踩坑（写进测试注释）**：
+    1. **viewport 默认 800×600** — 第三个 layer switch group 在屏外 → 测试用例需 `tester.view.physicalSize = const Size(800, 1400)` + addTearDown reset
+    2. **context.pop 找不到 inherited** — `MaterialApp(home:)` 不带 GoRouter；测试要用 `MaterialApp.router(routerConfig: GoRouter(...))` 包一层
+    3. **`getById` 是同步的** — Completer `thenAnswer((_) => completer.future)` 编译失败（类型不匹配），用 override notifier 替代
+    4. **list provider 的 `build()` 不调 `getAll`** — `getAll` 只在 `refresh()` 时调用；测试"save 后 list refresh"期望 `getAllCalls` 从 0 → 1，不是 1 → 2
+  - **验证**: `flutter analyze` → **No issues on M2-T4 changed files**（剩余 2 个 info `value` deprecated 在 `DropdownButtonFormField` 是 Flutter 3.33+ 替换 `initialValue` 的 deprecation；3.44.4 上有提示但 `value` 仍可工作；改 `initialValue` 会失去受控更新能力，不必要） | `flutter test` → **251/251 通过**（原 222 + 15 notifier + 4 layer switch group + 10 editor screen）
+  - **预估**: 60 min
+  - **完成时间**: 2026-06-27
 - [ ] **M2-T5** `FrameRenderer` 渲染器（`compute` 隔离，输入 bytes + template → bytes，3 种 layer 按 z-order 合成）
 - [ ] **M2-T6** 导出：详情页"应用模版" → 进度 → `gal.saveImage()` → 提示成功 → 模版 `usageCount += N`
 - [ ] **M2-T7** 测试：FrameRenderer 3 种 layer 各自合成 / `usageCount` 持久化往返 / 编辑器添加/删除图层 widget

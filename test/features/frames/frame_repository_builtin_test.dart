@@ -55,8 +55,7 @@ void main() {
 
     test('builtin-magazine has correct 3-layer structure', () {
       final templates = builtInTemplates();
-      final magazine =
-          templates.firstWhere((t) => t.id == 'builtin-magazine');
+      final magazine = templates.firstWhere((t) => t.id == 'builtin-magazine');
 
       expect(magazine.name, equals('杂志'));
       expect(magazine.isBuiltIn, isTrue);
@@ -112,8 +111,7 @@ void main() {
       await repo.ensureBuiltInsSeeded();
 
       // Should only write magazine, not minimal
-      verifyNever(
-          () => box.put('builtin-minimal', any<FrameTemplate>()));
+      verifyNever(() => box.put('builtin-minimal', any<FrameTemplate>()));
       verify(() => box.put('builtin-magazine', any<FrameTemplate>())).called(1);
     });
 
@@ -127,10 +125,8 @@ void main() {
       await repo.ensureBuiltInsSeeded();
 
       // Neither should be written
-      verifyNever(
-          () => box.put('builtin-minimal', any<FrameTemplate>()));
-      verifyNever(
-          () => box.put('builtin-magazine', any<FrameTemplate>()));
+      verifyNever(() => box.put('builtin-minimal', any<FrameTemplate>()));
+      verifyNever(() => box.put('builtin-magazine', any<FrameTemplate>()));
     });
   });
 }

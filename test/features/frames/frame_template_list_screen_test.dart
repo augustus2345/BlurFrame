@@ -65,8 +65,10 @@ void main() {
 
   // ── 4 态 ────────────────────────────────────────────────
   group('FrameTemplateListScreen — 4 态', () {
-    testWidgets('loading: shows spinner before getAll resolves', (tester) async {
-      await tester.pumpWidget(buildScreen(buildOverride: frameTemplateListProvider));
+    testWidgets('loading: shows spinner before getAll resolves',
+        (tester) async {
+      await tester
+          .pumpWidget(buildScreen(buildOverride: frameTemplateListProvider));
       await tester.pump();
 
       expect(
@@ -120,7 +122,8 @@ void main() {
       verify(() => repo.getAll()).called(2);
     });
 
-    testWidgets('empty: shows empty state (no templates at all)', (tester) async {
+    testWidgets('empty: shows empty state (no templates at all)',
+        (tester) async {
       when(() => repo.getAll()).thenReturn(const <FrameTemplate>[]);
       await tester.pumpWidget(buildScreen());
       await tester.pumpAndSettle();
@@ -353,7 +356,8 @@ void main() {
       },
     );
 
-    testWidgets('user template: BuiltInTemplateException from delete shows snackbar',
+    testWidgets(
+        'user template: BuiltInTemplateException from delete shows snackbar',
         (tester) async {
       // 不应触发：内置模板菜单已禁删。模拟防御性抛错（不应该发生，但测一下 UI 处理）。
       final user = FrameTemplate(
