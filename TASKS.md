@@ -553,7 +553,19 @@
   - **验证**: `flutter analyze` → **0 errors**（107 info/warnings 均为既有非阻塞项）| `flutter test` → **447/447 通过**
   - **预估**: 15 min
   - **完成时间**: 2026-06-27
-- [ ] **M4-T6** 照片详情页"加星"交互：5 颗可点星标 → 写回 `PhotoModel.starRating`
+- [x] **M4-T6** 照片详情页"加星"交互：5 颗可点星标 → 写回 `PhotoModel.starRating`
+  - `PhotoRepository.updateStarRating`：新增方法，类似 `updateTags`；clamp 0-5 范围；id 不存在 no-op
+  - 新增 `lib/features/photos/presentation/widgets/star_rating.dart`：`StarRating` widget（5 颗可点星标 / 点击同一颗取消评星 / 与 TagPills 布局风格一致）
+  - `PhotoDetailContent`：新增 `onStarChanged` 参数，集成 `StarRating` widget
+  - `BottomActionBar`：星级按钮从 `onPressed: null` 升级为可用，传入 `onStar` 回调
+  - `PhotoDetailScreen`：新增 `_handleStar` + `_StarPickerSheet` 底部选择弹窗（点击同一颗星取消）
+  - 新增测试：
+    - `test/features/photos/star_rating_test.dart`：**8 个用例**（5 星渲染 / N 星填充 / 点击设值 / clamp 显示）
+    - `test/features/photos/photo_repository_test.dart`（追加）：**4 个用例**（更新+保留字段 / clamp 上限 / clamp 下限 / id 不存在 no-op）
+    - `test/features/photos/bottom_action_bar_test.dart`（改写）：更新 4 个旧用例（tag/star/album 按钮 disabled 占位 → star 按钮可用）
+  - **验证**: `flutter analyze` → **0 errors**（pre-existing warnings 非阻塞）| `flutter test` → **462/462 通过**（447 旧 + 15 新）
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-27
 - [ ] **M4-T7** `SearchFilter` model（纯 dart，含 `tagIds` / **`minStarRating`** / `dateRange` / `albumId` / `framedState`）
 - [ ] **M4-T8** 搜索二级页 `/search`（push，**入口在相册 tab 顶部搜索栏**）：过滤条件 chip 行 + 结果网格
 - [ ] **M4-T9** 5 维过滤：标签(AND/OR) / **星级(≥N/=N)** / 日期 / 影集 / 模版状态

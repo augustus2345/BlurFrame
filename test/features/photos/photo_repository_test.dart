@@ -99,4 +99,66 @@ void main() {
       verify(() => box.clear()).called(1);
     });
   });
+
+  group('PhotoRepository.updateStarRating', () {
+    test('updates the starRating and preserves other fields', () async {
+      const original = PhotoModel(
+        id: 'asset-1',
+        path: '/photos/IMG_0001.jpg',
+        width: 4032,
+        height: 3024,
+        tags: <String>['travel'],
+        starRating: 0,
+      );
+      when(() => box.get('asset-1')).thenReturn(original);
+      when(() => box.put(any<dynamic>(), any<dynamic>()))
+          .thenAnswer((_) async {});
+
+      await repo.updateStarRating('asset-1', 4);
+
+      final captured = verify(() => box.put(captureAny<dynamic>(), captureAny<dynamic>()))
+          .captured;
+      final saved = captured[1] as PhotoModel;
+      expect(saved.starRating, 4);
+      expect(saved.id, 'asset-1');
+      expect(saved.path, '/photos/IMG_0001.jpg');
+      expect(saved.tags, ['travel']);
+    });
+
+    test('clamps starRating to 0-5 range', () async {
+      const original = PhotoModel(id: 'asset-1', path: '/x', starRating: 0);
+      when(() => box.get('asset-1')).thenReturn(original);
+      when(() => box.put(any<dynamic>(), any<dynamic>()))
+          .thenAnswer((_) async {});
+
+      await repo.updateStarRating('asset-1', 10);
+
+      final captured = verify(() => box.put(captureAny<dynamic>(), captureAny<dynamic>()))
+          .captured;
+      final saved = captured[1] as PhotoModel;
+      expect(saved.starRating, 5); // clamped to 5
+    });
+
+    test('clamps negative starRating to 0', () async {
+      const original = PhotoModel(id: 'asset-1', path: '/x', starRating: 3);
+      when(() => box.get('asset-1')).thenReturn(original);
+      when(() => box.put(any<dynamic>(), any<dynamic>()))
+          .thenAnswer((_) async {});
+
+      await repo.updateStarRating('asset-1', -2);
+
+      final captured = verify(() => box.put(captureAny<dynamic>(), captureAny<dynamic>()))
+          .captured;
+      final saved = captured[1] as PhotoModel;
+      expect(saved.starRating, 0); // clamped to 0
+    });
+
+    test('returns early when photo does not exist', () async {
+      when(() => box.get('missing')).thenReturn(null);
+
+      await repo.updateStarRating('missing', 3);
+
+      verifyNever(() => box.put(any<dynamic>(), any<dynamic>()));
+    });
+  });
 }

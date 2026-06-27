@@ -3,11 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/datasources/exif_datasource.dart';
 import '../../data/models/photo_model.dart';
 import '../providers/exif_datasource_provider.dart';
 import 'exif_panel.dart';
 import 'photo_viewer.dart';
+import 'star_rating.dart';
 import 'tag_pills.dart';
 
 /// 详情页完整内容区域 — 包含大图 + EXIF 字段表 + 标签 + 底部操作按钮。
@@ -31,6 +31,7 @@ class PhotoDetailContent extends ConsumerWidget {
     required this.imageBytes,
     this.onShare,
     this.onApplyTemplate,
+    this.onStarChanged,
     super.key,
   });
 
@@ -38,6 +39,7 @@ class PhotoDetailContent extends ConsumerWidget {
   final Uint8List imageBytes;
   final VoidCallback? onShare;
   final VoidCallback? onApplyTemplate;
+  final ValueChanged<int>? onStarChanged;
 
   double _computeAspectRatio() {
     final width = photo.width;
@@ -82,6 +84,13 @@ class PhotoDetailContent extends ConsumerWidget {
 
         // 标签 pills
         TagPills(photo: photo),
+
+        // 星级评分
+        if (onStarChanged != null)
+          StarRating(
+            starRating: photo.starRating,
+            onChanged: onStarChanged!,
+          ),
 
         // 底部操作按钮
         _DetailBottomButtons(

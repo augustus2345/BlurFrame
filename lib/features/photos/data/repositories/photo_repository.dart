@@ -67,6 +67,26 @@ class PhotoRepository {
       takenAt: photo.takenAt,
       tags: tags,
       frameTemplateId: photo.frameTemplateId,
+      starRating: photo.starRating,
+    ));
+  }
+
+  /// 更新照片的星级评分。
+  ///
+  /// [id] 不存在则 no-op。
+  /// [starRating] 有效范围 0–5，超出范围会被 clamp。
+  Future<void> updateStarRating(String id, int starRating) async {
+    final photo = get(id);
+    if (photo == null) return;
+    await save(PhotoModel(
+      id: photo.id,
+      path: photo.path,
+      width: photo.width,
+      height: photo.height,
+      takenAt: photo.takenAt,
+      tags: photo.tags,
+      frameTemplateId: photo.frameTemplateId,
+      starRating: starRating.clamp(0, 5),
     ));
   }
 

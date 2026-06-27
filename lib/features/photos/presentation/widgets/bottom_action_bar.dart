@@ -12,6 +12,7 @@ class BottomActionBar extends StatelessWidget {
     required this.onDelete,
     this.onApplyTemplate,
     this.onTags,
+    this.onStar,
     super.key,
   });
 
@@ -23,6 +24,9 @@ class BottomActionBar extends StatelessWidget {
 
   /// M4-T4 标签选择器入口，由 [PhotoDetailScreen] 传入具体实现。
   final VoidCallback? onTags;
+
+  /// M4-T6 星级选择器入口，由 [PhotoDetailScreen] 传入具体实现。
+  final VoidCallback? onStar;
 
   Future<void> _handleDelete(BuildContext context) async {
     final id = photoId;
@@ -82,11 +86,11 @@ class BottomActionBar extends StatelessWidget {
             icon: const Icon(Icons.local_offer_outlined),
             onPressed: canAct && onTags != null ? onTags : null,
           ),
-          const IconButton(
-            key: Key('photo_detail_action_star'),
-            tooltip: '星级（M4 接入）',
-            icon: Icon(Icons.star_border),
-            onPressed: null,
+          IconButton(
+            key: const Key('photo_detail_action_star'),
+            tooltip: '星级',
+            icon: const Icon(Icons.star_border),
+            onPressed: canAct && onStar != null ? onStar : null,
           ),
           const IconButton(
             key: Key('photo_detail_action_album'),

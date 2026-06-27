@@ -174,6 +174,21 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
     );
   }
 
+  /// 显示星级选择 sheet，更新照片星级后刷新列表。
+  Future<void> _handleStar(String photoId, int currentRating) async {
+    final repo = ref.read(photoRepositoryProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => _StarPickerSheet(
+        currentRating: currentRating,
+        onChanged: (rating) async {
+          await repo.updateStarRating(photoId, rating);
+          await ref.read(photosProvider.notifier).refresh();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncPhotos = ref.watch(photosProvider);
@@ -239,6 +254,7 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
                   assetId: photo.id,
                   fullImageLoader: fullImageLoader,
                   onApplyTemplate: () => _showTemplateSheet(photo.id),
+                  onStarChanged: (rating) => _handleStar(photo.id, photo.starRating),
                 );
               },
             ),
@@ -248,6 +264,7 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
             onDelete: _handleDelete,
             onApplyTemplate: () => _showTemplateSheet(currentPhoto.id),
             onTags: () => _handleTags(currentPhoto.id, currentPhoto.tags.toSet()),
+            onStar: () => _handleStar(currentPhoto.id, currentPhoto.starRating),
           ),
         ],
       ),
@@ -274,4 +291,97 @@ Future<void> showApplyTemplateSheet({
       },
     ),
   );
+}
+
+/// 星级选择底部弹窗。
+class _StarPickerSheet extends StatefulWidget {
+  const _StarPickerSheet({
+    required this.currentRating,
+    required this.onChanged,
+  });
+
+  final int currentRating;
+  final ValueChanged<int> onChanged;
+
+  @override
+  State<_StarPickerSheet> createState() => _StarPickerSheetState();
+}
+
+class _StarPickerSheetState extends State<_StarPickerSheet> {
+  late int _rating;
+
+  @override
+  void initState() {
+    super.initState();
+    _rating = widget.currentRating.clamp(0, 5);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            '选择星级',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              final starIndex = index + 1;
+              final isFilled = starIndex <= _rating;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: GestureDetector(
+                  key: ValueKey('sheet_star_$starIndex'),
+                  onTap: () {
+                    setState(() {
+                      // 点击同一颗星则取消评星（设为 0）
+                      _rating = starIndex == _rating ? 0 : starIndex;
+                    });
+                  },
+                  child: Icon(
+                    isFilled ? Icons.star : Icons.star_border,
+                    size: 40,
+                    color: isFilled
+                        ? Colors.amber
+                        : theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () {
+                widget.onChanged(_rating);
+                Navigator.of(context).pop();
+              },
+              child: const Text('确定'),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
 }

@@ -8,6 +8,8 @@ void main() {
     String? photoId = 'photo_001',
     Future<void> Function(String)? onDelete,
     VoidCallback? onApplyTemplate,
+    VoidCallback? onTags,
+    VoidCallback? onStar,
   }) {
     return MaterialApp(
       home: Scaffold(
@@ -15,6 +17,8 @@ void main() {
           photoId: photoId,
           onDelete: onDelete ?? (_) async {},
           onApplyTemplate: onApplyTemplate,
+          onTags: onTags,
+          onStar: onStar,
         ),
       ),
     );
@@ -98,22 +102,52 @@ void main() {
     );
 
     testWidgets(
-      'tag / star / album buttons are disabled placeholders',
+      'tag button is disabled when onTags is null',
       (tester) async {
-        await tester.pumpWidget(buildSubject());
+        await tester.pumpWidget(buildSubject(onTags: null));
 
         final tagsBtn = tester.widget<IconButton>(
           find.byKey(const Key('photo_detail_action_tags')),
         );
+        expect(tagsBtn.onPressed, isNull);
+      },
+    );
+
+    testWidgets(
+      'star button calls onStar when provided and photoId is set',
+      (tester) async {
+        var called = false;
+        await tester.pumpWidget(
+          buildSubject(onStar: () => called = true),
+        );
+
+        await tester.tap(find.byKey(const Key('photo_detail_action_star')));
+        await tester.pump();
+
+        expect(called, isTrue);
+      },
+    );
+
+    testWidgets(
+      'star button is disabled when onStar is null',
+      (tester) async {
+        await tester.pumpWidget(buildSubject(onStar: null));
+
         final starBtn = tester.widget<IconButton>(
           find.byKey(const Key('photo_detail_action_star')),
         );
+        expect(starBtn.onPressed, isNull);
+      },
+    );
+
+    testWidgets(
+      'album button is disabled placeholder',
+      (tester) async {
+        await tester.pumpWidget(buildSubject());
+
         final albumBtn = tester.widget<IconButton>(
           find.byKey(const Key('photo_detail_action_album')),
         );
-
-        expect(tagsBtn.onPressed, isNull);
-        expect(starBtn.onPressed, isNull);
         expect(albumBtn.onPressed, isNull);
       },
     );
@@ -129,9 +163,13 @@ void main() {
         final frameBtn = tester.widget<IconButton>(
           find.byKey(const Key('photo_detail_action_frame')),
         );
+        final starBtn = tester.widget<IconButton>(
+          find.byKey(const Key('photo_detail_action_star')),
+        );
 
         expect(deleteBtn.onPressed, isNull);
         expect(frameBtn.onPressed, isNull);
+        expect(starBtn.onPressed, isNull);
       },
     );
   });

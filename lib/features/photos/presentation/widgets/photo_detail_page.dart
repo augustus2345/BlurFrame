@@ -24,6 +24,7 @@ class PhotoDetailPage extends ConsumerWidget {
     required this.fullImageLoader,
     this.onShare,
     this.onApplyTemplate,
+    this.onStarChanged,
     super.key,
   });
 
@@ -31,6 +32,7 @@ class PhotoDetailPage extends ConsumerWidget {
   final Future<Uint8List?> Function(String assetId) fullImageLoader;
   final VoidCallback? onShare;
   final VoidCallback? onApplyTemplate;
+  final ValueChanged<int>? onStarChanged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,6 +46,7 @@ class PhotoDetailPage extends ConsumerWidget {
       fullImageLoader: fullImageLoader,
       onShare: onShare,
       onApplyTemplate: onApplyTemplate,
+      onStarChanged: onStarChanged,
     );
   }
 }
@@ -56,6 +59,7 @@ class _PhotoLoadedView extends StatelessWidget {
     required this.fullImageLoader,
     this.onShare,
     this.onApplyTemplate,
+    this.onStarChanged,
   });
 
   final String assetId;
@@ -63,6 +67,7 @@ class _PhotoLoadedView extends StatelessWidget {
   final Future<Uint8List?> Function(String assetId) fullImageLoader;
   final VoidCallback? onShare;
   final VoidCallback? onApplyTemplate;
+  final ValueChanged<int>? onStarChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +86,7 @@ class _PhotoLoadedView extends StatelessWidget {
           imageBytes: bytes,
           onShare: onShare,
           onApplyTemplate: onApplyTemplate,
+          onStarChanged: onStarChanged,
         );
       },
     );
