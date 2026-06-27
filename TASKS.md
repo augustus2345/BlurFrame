@@ -486,9 +486,18 @@
 
 ---
 
-## M4 — 标签 + 搜索 ⬜（搜索降级为相册 tab 内 push 二级页，对齐 mockup v3 / PRD v0.2）
+## M4 — 标签 + 搜索 🟡（搜索降级为相册 tab 内 push 二级页，对齐 mockup v3 / PRD v0.2）
 
-- [ ] **M4-T1** `Tag` model `@HiveType(typeId: 8)`
+- [x] **M4-T1** `Tag` model `@HiveType(typeId: 8)`
+  - `TagModel`：id / name / colorValue(ARGB) / createdAt 共 4 字段
+  - `@HiveType(typeId: 8)` + `@HiveField(0..3)` 注解
+  - `copyWith()` 方法支持字段覆盖
+  - `createdAt` 默认 `DateTime.now()`
+  - `HiveService.registerAdapters()` 接入 `TagModelAdapter`（幂等守卫）
+  - 新增 `test/features/tags/tag_model_test.dart`：**7 个用例**（全字段 roundtrip / 最小字段 roundtrip / 2 个颜色值格式 / 多记录独立性 / copyWith / typeId=8）
+  - **验证**: `flutter analyze` → **No issues found on M4-T1 files** | `flutter test` → **397/397 通过**（原 390 + 7 新）
+  - **预估**: 15 min
+  - **完成时间**: 2026-06-27
 - [ ] **M4-T2** `TagRepository` 完整 CRUD + 删除保护
 - [ ] **M4-T3** 标签管理页
 - [ ] **M4-T4** Lightroom 风格选择器（已选 + 全部 + 搜索）

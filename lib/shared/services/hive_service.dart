@@ -5,6 +5,7 @@ import '../../core/constants/app_constants.dart';
 import '../../features/albums/data/models/album_model.dart';
 import '../../features/frames/data/models/frame_template.dart';
 import '../../features/photos/data/models/photo_model.dart';
+import '../../features/tags/data/models/tag_model.dart';
 
 /// Bootstraps Hive boxes and centralizes access. All persistence flows
 /// through here so adapter registration and box lifecycle stay consistent.
@@ -105,7 +106,9 @@ class HiveService {
       if (!Hive.isAdapterRegistered(7)) {
         Hive.registerAdapter(AlbumModelAdapter());
       }
-      // TODO(M4): Hive.registerAdapter(TagModelAdapter());
+      if (!Hive.isAdapterRegistered(8)) {
+        Hive.registerAdapter(TagModelAdapter());
+      }
     } catch (e, st) {
       debugPrint('HiveService.registerAdapters 失败: $e\n$st');
       rethrow;
