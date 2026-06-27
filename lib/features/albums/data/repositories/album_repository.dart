@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../shared/services/hive_service.dart';
@@ -148,16 +147,6 @@ class AlbumRepository {
   UuidGenerator get _uuid => const UuidGenerator._();
 }
 
-/// DI 入口。
-final albumRepositoryProvider = Provider<AlbumRepository>((ref) {
-  return AlbumRepository();
-});
-
-/// 影集列表 Provider。与 [AlbumRepository.getAll] 联动，数据变更后自动 rebuild。
-final albumListProvider = FutureProvider<List<AlbumModel>>((ref) async {
-  final repo = ref.watch(albumRepositoryProvider);
-  return repo.getAll();
-});
 
 /// 生产用 UUID 生成器（调用 uuid 包）。
 class UuidGenerator {

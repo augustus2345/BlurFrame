@@ -425,7 +425,17 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **338/338 通过**（原 299 + 39 新）
   - **预估**: 25 min
   - **完成时间**: 2026-06-27
-- [ ] **M3-T3** 影集列表页（2 列，封面缩略图）
+- [x] **M3-T3** 影集列表页（2 列，封面缩略图）
+  - 新增 3 个 lib 文件 + 2 个 test 文件：
+    - `lib/features/albums/presentation/providers/album_list_provider.dart` — `AlbumListNotifier`（与 PhotosNotifier 同模式：build 同步返回空 / refresh 走 `AsyncValue.guard`）
+    - `lib/features/albums/presentation/widgets/album_grid_item.dart` — 单格 widget：封面缩略图（FutureBuilder 注入）+ 底部渐变遮罩 + 标题 + 照片数 + 多选勾选态
+    - `lib/features/albums/presentation/screens/album_list_screen.dart` — 改写：4 态显式（loading/error+retry/empty/success）+ 2 列 `GridView.builder` + 封面缩略图 + 标题 + 照片数；`albumRepositoryProvider` 从 repository 迁出到 provider 文件（与 frame/photo 保持一致）
+  - 测试（15 个新增）：
+    - `test/features/albums/album_grid_item_test.dart` — **10 个用例**：tap 回调 / 无 onTap 不抛错 / loading 占位 / bytes 渲染 Image.memory / 无封面占位 / 1:1 比例 / isSelected 显示勾选 / isSelected=false 隐藏勾选 / onLongPress 触发 / 无 onLongPress 不抛错
+    - `test/features/albums/album_list_screen_test.dart` — **5 个用例**：loading（`_LoadingAlbumListNotifier`）/ empty（`_EmptyAlbumListNotifier`）/ success 2 列网格 + 2 卡片 / error+retry / + 按钮存在
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **353/353 通过**（原 338 + 15 新）
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-27
 - [ ] **M3-T4** 新建影集 sheet（名称 + 选照片 + 版式）
 - [ ] **M3-T5** 详情页：版式 `autoLayout` + 手动 1/2/3/4 宫格
 - [ ] **M3-T6** 拖拽重排（`ReorderableListView` 持久化）
