@@ -589,7 +589,13 @@
   - **验证**: `flutter analyze` → **0 errors** | `flutter test` → **491/491 通过**（原 462 + 29 新）
   - **预估**: 40 min
   - **完成时间**: 2026-06-27
-- [ ] **M4-T9** 5 维过滤：标签(AND/OR) / **星级(≥N/=N)** / 日期 / 影集 / 模版状态
+- [x] **M4-T9** 5 维过滤：标签(AND/OR) / **星级(≥N/=N)** / 日期 / 影集 / 模版状态
+  - M4-T9 的任务内容（5 维过滤）与 M4-T8 完全重复，已在 M4-T8 的 SearchRepository.matches() + FilterChipBar 中实现
+  - SearchRepository 5 维过滤：tagIds(AND/OR) / minStarRating(≥/=) / dateFrom~dateTo / albumId / framedState
+  - FilterChipBar：5 个 chip（标签/星级/日期/影集/模版）+ 各自 sheet（_TagFilterSheet / StarRatingFilterSheet / DateRangeFilterSheet / _AlbumFilterSheet / _FramedFilterSheet）
+  - search_repository_test.dart：12 个用例覆盖所有维度
+  - **验证**: `flutter analyze` → **131 info trailing comma（非阻塞）** | `flutter test` → **491/491 通过**
+  - **完成时间**: 2026-06-27（随 M4-T8 一起完成）
 - [ ] **M4-T10** 搜索结果批量操作（打标签 / 加星 / 删除）
 - [ ] **M4-T11** 测试：TagRepository / SearchFilter.matches（4 维交叉） / 星级 widget
 
