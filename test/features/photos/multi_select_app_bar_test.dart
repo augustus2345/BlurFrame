@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:blurframe/features/photos/presentation/widgets/multi_select_app_bar.dart';
+import 'package:photo_beauty/features/photos/presentation/widgets/multi_select_app_bar.dart';
 
 void main() {
   group('MultiSelectAppBar', () {

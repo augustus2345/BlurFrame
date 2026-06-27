@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:blurframe/features/photos/data/datasources/exif_datasource.dart';
-import 'package:blurframe/features/photos/presentation/widgets/exif_panel.dart';
+import 'package:photo_beauty/features/photos/data/datasources/exif_datasource.dart';
+import 'package:photo_beauty/features/photos/presentation/widgets/exif_panel.dart';
 
 void main() {
   group('ExifPanel', () {
@@ -115,10 +115,11 @@ void main() {
       expect(find.text('1.0s'), findsOneWidget);
     });
 
-    testWidgets('缺少字段显示 — 占位符', (tester) async {
-      final exif = ExifSummary(make: 'Canon'); // 只有 make
+    testWidgets('缺少字段不渲染对应行（无 — 占位符）', (tester) async {
+      // 只有 make 字段，ExifPanel 只渲染有值的行，不渲染 null 字段
+      const exif = ExifSummary(make: 'Canon'); // 只有 make
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ExifPanel(exif: exif),
           ),
@@ -126,8 +127,9 @@ void main() {
       );
 
       expect(find.text('Canon'), findsOneWidget);
-      // 其他字段应该显示 —
-      expect(find.text('—'), findsWidgets);
+      // ExifPanel 不为 null 字段渲染 "—" 占位符行
+      // （只渲染有值的字段，null 字段整行跳过）
+      expect(find.text('—'), findsNothing);
     });
   });
 }

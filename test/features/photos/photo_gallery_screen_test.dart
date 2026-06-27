@@ -345,7 +345,10 @@ void main() {
       expect(find.byKey(const Key('photo_grid_item_photo_002')), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('photo_grid_item_photo_002')));
-      await tester.pumpAndSettle();
+      // InteractiveViewer 内部 AnimationController 持续调度帧，
+      // pumpAndSettle 永远不等完。改用 pump() + 1s 动画超时（CLAUDE.md §7.11）。
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
 
       expect(find.byKey(const Key('photo_detail_screen')), findsOneWidget);
       expect(find.byType(PageView), findsOneWidget);

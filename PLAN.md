@@ -10,7 +10,7 @@
 - **PRD**: ✅ **v0.2**（[docs/prd/PRD.md](./docs/prd/PRD.md) — 对齐 mockup v3：5 tab / 模版独立 tab / 删除 tab 合并清理模式 / 搜索降级为相册 tab 内 push 二级页 / 模板 3 图层 / 2 套内置）
 - **工程骨架**: ✅ 主题 / 路由 / Shell（**5 tab**） / Hive 启动 / 设置服务已就位
 - **M0**: ✅ 基础完成（测试 + 文档注释 + 依赖检查 + registerAdapters 占位 + `flutter run` 推至 M1）
-- **M1**: 🟡 进行中（T1 权限引导 / T2 PhotoModel / T3 loadAllFromSystem / T4 exif 集成 / T5 3 列网格 + 缩略图懒加载 已完成；T6–T10 占位）
+- **M1**: 🟡 进行中（T1 权限引导 / T2 PhotoModel / T3 loadAllFromSystem / T4 exif 集成 / T5 3 列网格 + 缩略图懒加载 / T6–T9 已完成；T10 占位）
 - **M2–M5**: ⬜ 全部为占位 EmptyState，待实现
 - **M6**: ⬜ 打磨 + Integration test
 

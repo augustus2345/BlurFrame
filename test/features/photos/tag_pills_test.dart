@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:blurframe/features/photos/data/models/photo_model.dart';
-import 'package:blurframe/features/photos/presentation/widgets/tag_pills.dart';
+import 'package:photo_beauty/features/photos/data/models/photo_model.dart';
+import 'package:photo_beauty/features/photos/presentation/widgets/tag_pills.dart';
 
 void main() {
   PhotoModel makePhoto({List<String> tags = const []}) => PhotoModel(

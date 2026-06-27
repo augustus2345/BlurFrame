@@ -110,7 +110,10 @@ void main() {
           photos: photos,
         ),
       );
-      await tester.pumpAndSettle();
+      // InteractiveViewer 内部 AnimationController 持续调度帧，
+      // pumpAndSettle 永久 hang。改用 pump() + 1s 动画超时（CLAUDE.md §7.11）。
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
 
       // PhotoDetailPage 现在内部渲染 PhotoDetailContent
       expect(find.byType(PhotoDetailPage), findsOneWidget);

@@ -94,6 +94,10 @@ void main() {
       expect(find.byType(PageView), findsNothing);
     });
 
+    // 避免 pumpAndSettle + InteractiveViewer 永久 hang（CLAUDE.md §7.11）：
+    // PageView.builder 构建了所有 3 个 PhotoDetailPage（含 InteractiveViewer）。
+    // InteractiveViewer 内部 AnimationController 持续驱动 frame 调度，
+    // pumpAndSettle 永远等不到"没有待处理帧"。改用 pump() + 1s 动画超时。
     testWidgets(
       'delete current photo: confirm → PhotoRepository.delete + refresh',
       (tester) async {
@@ -111,7 +115,8 @@ void main() {
         await tester.pump();
 
         await tester.tap(find.byKey(const Key('photo_detail_action_delete')));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
 
         expect(
           find.byKey(const Key('photo_detail_delete_dialog')),
@@ -119,7 +124,8 @@ void main() {
         );
 
         await tester.tap(find.byKey(const Key('photo_detail_delete_confirm')));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
 
         verify(() => repo.delete(photos[0].id)).called(1);
       },
@@ -140,9 +146,11 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.byKey(const Key('photo_detail_action_delete')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
       await tester.tap(find.byKey(const Key('photo_detail_delete_cancel')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
 
       verifyNever(() => repo.delete(any()));
     });

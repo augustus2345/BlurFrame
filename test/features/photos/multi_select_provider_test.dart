@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:blurframe/features/photos/presentation/providers/multi_select_provider.dart';
+import 'package:photo_beauty/features/photos/presentation/providers/multi_select_provider.dart';
 
 void main() {
   group('MultiSelectNotifier', () {

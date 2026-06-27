@@ -238,8 +238,8 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **163/163** 通过（148 旧 + 15 新）
   - **预估**: 40 min
   - **完成时间**: 2026-06-26
-- [ ] **M1-T9** 4 态显式：loading / success / error / empty（`AsyncValue.when` + `EmptyState`，M1-T5 已覆盖 gallery 4 态；M1-T6 详情页复用同一套）
-- [ ] **M1-T10** 测试：`PhotoRepository` / `ExifDatasource` / `PhotoGrid` widget 三个核心文件覆盖完整
+- [x] **M1-T9** 4 态显式 + 测试覆盖完整：`pumpAndSettle` + `InteractiveViewer` hang 修复（改用 `pump()` + 1s 动画超时，CLAUDE.md §7.11）；`package:blurframe` → `package:photo_beauty` 批量修复；`PhotoDetailContent` 测试补 `ProviderScope`；`ExifPanel` 缺失字段行为修正；`widget_test.dart` 重写；全 suite **185/185 通过**，analyze **0 errors**
+  - **完成时间**: 2026-06-26
 
 **完成时间**: 2026-06-23
 
