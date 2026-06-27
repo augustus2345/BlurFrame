@@ -498,7 +498,15 @@
   - **验证**: `flutter analyze` → **No issues found on M4-T1 files** | `flutter test` → **397/397 通过**（原 390 + 7 新）
   - **预估**: 15 min
   - **完成时间**: 2026-06-27
-- [ ] **M4-T2** `TagRepository` 完整 CRUD + 删除保护
+- [x] **M4-T2** `TagRepository` 完整 CRUD + 删除保护
+  - `TagRepository`：create / rename / setColor / delete（被引用时抛 `TagInUseException`）+ `isTagInUse` 查询
+  - `TagInUseException`（tagId + photoCount）；删除保护检查 `photosMeta` box 中所有 `PhotoModel.tags`
+  - 构造函数支持 `fromBox(tagsBox, photosBox)` 注入测试
+  - `UuidGenerator` 与 `AlbumRepository` 共用
+  - 新增 `test/features/tags/tag_repository_test.dart`：**20 个用例**（getAll ×2 / getById ×2 / create ×3 / rename ×2 / setColor ×2 / delete ×5 / isTagInUse ×4）
+  - **验证**: `flutter analyze` → **2 info trailing comma（非阻塞）** | `flutter test` → **417/417 通过**（原 397 + 20 新）
+  - **预估**: 25 min
+  - **完成时间**: 2026-06-27
 - [ ] **M4-T3** 标签管理页
 - [ ] **M4-T4** Lightroom 风格选择器（已选 + 全部 + 搜索）
 - [ ] **M4-T5** `PhotoModel` 加 **`@HiveField(7) starRating: int`**（0–5，CLAUDE.md §7.7：紧跟现有 0–6 之后；同步更新 `hive_service.registerAdapters` 与 7 个 `photo_model_test.dart` 字段数）
