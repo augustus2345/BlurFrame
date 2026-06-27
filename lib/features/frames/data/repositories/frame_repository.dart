@@ -20,6 +20,61 @@ class BuiltInTemplateException implements Exception {
       "'$id' is immutable";
 }
 
+/// Returns the two built-in templates shipped with the app.
+///
+/// These are used to seed the frames box on first launch (see
+/// [ensureBuiltInsSeeded]). Each id is stable and unique.
+///
+/// - **极简** (`builtin-minimal`): single [BlurBorderLayer] (intensity 4,
+///   edge-only blur) — clean, distraction-free border.
+/// - **杂志** (`builtin-magazine`): 3-layer composite — top-center brand
+///   text watermark, bottom-center EXIF-placeholder text watermark, and a
+///   blurred edge border. The bottom watermark text `"YYYY-MM-DD"` is a
+///   placeholder that will be replaced with actual EXIF data at render time
+///   (M2-T5 / M2-T6).
+///
+/// Built-in templates are immutable through the repository: they cannot be
+/// [delete]d or overwritten by [save].
+List<FrameTemplate> builtInTemplates() {
+  return [
+    // ── 极简 ───────────────────────────────────────────────
+    FrameTemplate(
+      id: 'builtin-minimal',
+      name: '极简',
+      isBuiltIn: true,
+      usageCount: 0,
+      layers: [
+        BlurBorderLayer(intensity: 4, edge: true),
+      ],
+    ),
+    // ── 杂志 ───────────────────────────────────────────────
+    FrameTemplate(
+      id: 'builtin-magazine',
+      name: '杂志',
+      isBuiltIn: true,
+      usageCount: 0,
+      layers: [
+        // Bottom EXIF placeholder (z-order: below top watermark)
+        TextWatermarkLayer(
+          text: 'YYYY-MM-DD',
+          position: WatermarkPosition.bottomCenter,
+          fontSize: 12,
+          color: 0xCCFFFFFF,
+        ),
+        // Top brand watermark (z-order: above bottom watermark)
+        TextWatermarkLayer(
+          text: 'Photo',
+          position: WatermarkPosition.topCenter,
+          fontSize: 16,
+          color: 0xFFFFFFFF,
+        ),
+        // Blurred edge border (z-order: lowest, painted first)
+        BlurBorderLayer(intensity: 6, edge: true),
+      ],
+    ),
+  ];
+}
+
 /// Persistence + protection rules for frame templates.
 ///
 /// Built-in templates (those seeded by the app, `isBuiltIn == true`) are
@@ -72,6 +127,19 @@ class FrameRepository {
       throw BuiltInTemplateException(id);
     }
     await _box.delete(id);
+  }
+
+  /// Seed the box with built-in templates if they are not yet present.
+  ///
+  /// Idempotent: safe to call on every app startup. Only writes when a
+  /// built-in id is missing from the box (i.e. first launch, or the user
+  /// somehow deleted a built-in).
+  Future<void> ensureBuiltInsSeeded() async {
+    for (final tmpl in builtInTemplates()) {
+      if (!(_box.containsKey(tmpl.id))) {
+        await _box.put(tmpl.id, tmpl);
+      }
+    }
   }
 }
 

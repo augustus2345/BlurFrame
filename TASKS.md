@@ -259,7 +259,14 @@
   - 新增 `test/features/frames/frame_template_test.dart`：16 个用例覆盖 roundtrip / layer 多态 / copyWith / withIncrementedUsage
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **200/200 通过**
   - **完成时间**: 2026-06-27
-- [ ] **M2-T2** `FrameRepository.builtInTemplates()` 注入 **2 套**内置模版：**极简**（窄边模糊边框）/ **杂志**（顶部品牌 + 底部 EXIF 水印 + 模糊边框 3 层叠加）
+- [x] **M2-T2** `FrameRepository.builtInTemplates()` 注入 **2 套**内置模版：**极简**（窄边模糊边框）/ **杂志**（顶部品牌 + 底部 EXIF 水印 + 模糊边框 3 层叠加）
+  - 新增 `builtInTemplates()` 顶层函数，返回 2 个 `FrameTemplate`（`builtin-minimal` / `builtin-magazine`）
+  - `builtin-magazine` 的 `WatermarkPosition` 需要 `topCenter` / `bottomCenter`，在 `frame_template.dart` 中扩展枚举（typeId 9，fields 5/6）
+  - 新增 `ensureBuiltInsSeeded()` 实例方法：幂等写入缺失的内置模板，首次启动后每次启动只补漏
+  - `dart run build_runner build` 重新生成 `frame_template.g.dart`（新增 2 个枚举字段）
+  - 新增 `test/features/frames/frame_repository_builtin_test.dart`：**7 个用例**（4 个 builtInTemplates 结构验证 + 3 个 ensureBuiltInsSeeded 幂等性）
+  - **验证**: `flutter analyze` → **0 warnings on changed files** | `flutter test` → **207/207 通过**（原 200 + 7 新）
+  - **完成时间**: 2026-06-27
 - [ ] **M2-T3** 模版 tab 列表页（独立 tab `/frames`，不是 push）：2 列网格 + `editor-frame` 预览 + "自带"标记 / "使用 N 次"统计 + 长按复制/删除（内置不可删）
 - [ ] **M2-T4** 模版编辑器 `/frames/editor`（push）：顶部预览 + 中部 3 层分组（每层 switch + 参数：模糊 intensity / 水印 text + EXIF / 颜色选择）+ 底部"保存模板"按钮
 - [ ] **M2-T5** `FrameRenderer` 渲染器（`compute` 隔离，输入 bytes + template → bytes，3 种 layer 按 z-order 合成）

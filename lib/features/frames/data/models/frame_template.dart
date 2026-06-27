@@ -155,6 +155,10 @@ enum WatermarkPosition {
   bottomRight,
   @HiveField(4)
   center,
+  @HiveField(5)
+  topCenter,
+  @HiveField(6)
+  bottomCenter,
 }
 
 /// Position of a [ColorStripeLayer] along the vertical axis.
