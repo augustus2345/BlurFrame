@@ -80,6 +80,11 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
               title: const Text('相册'),
               actions: <Widget>[
                 IconButton(
+                  icon: const Icon(Icons.search),
+                  tooltip: '搜索',
+                  onPressed: () => context.push('/search'),
+                ),
+                IconButton(
                   icon: const Icon(Icons.cleaning_services_outlined),
                   tooltip: '清理',
                   onPressed: () {

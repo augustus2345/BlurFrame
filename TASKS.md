@@ -574,7 +574,21 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **475/475 通过**（462 旧 + 13 新）
   - **预估**: 20 min
   - **完成时间**: 2026-06-27
-- [ ] **M4-T8** 搜索二级页 `/search`（push，**入口在相册 tab 顶部搜索栏**）：过滤条件 chip 行 + 结果网格
+- [x] **M4-T8** 搜索二级页 `/search`（push，**入口在相册 tab 顶部搜索栏**）：过滤条件 chip 行 + 结果网格
+  - 新增 7 个 lib 文件 + 2 个 test 文件：
+    - `lib/features/search/data/repositories/search_repository.dart` — 5 维过滤核心：`SearchRepository.matches(SearchFilter, List<PhotoModel>)` 按 tagIds(AND/OR) / minStarRating(≥/=) / dateFrom~dateTo / albumId / framedState 过滤
+    - `lib/features/search/presentation/providers/search_provider.dart` — `searchFilterProvider`（StateProvider）+ `searchResultsProvider`（派生 AsyncValue）+ `searchRepositoryProvider`
+    - `lib/features/search/presentation/widgets/filter_chip_bar.dart` — FilterChipBar（标签/星级/日期/影集/模版 5 个 chip）+ 5 个内置 filter sheet（_TagFilterSheet / StarRatingFilterSheet / DateRangeFilterSheet / _AlbumFilterSheet / _FramedFilterSheet）
+    - `lib/features/search/presentation/widgets/star_rating_filter_sheet.dart` — 星级过滤底部弹窗（≥N / =N 模式切换 + 0-5 星按钮）
+    - `lib/features/search/presentation/widgets/date_range_picker_sheet.dart` — 日期范围底部弹窗（今天/本周/本月/今年快捷 + 自定义双端 datePicker）
+    - `lib/features/search/presentation/screens/search_screen.dart` — 搜索页（4 态 + FilterChipBar + 结果网格 + 多选模式 + 返回清除 filter）
+  - 修改：`lib/features/photos/presentation/screens/photo_gallery_screen.dart` — AppBar 右侧新增搜索按钮 `IconButton(Icons.search)` → `context.push('/search')`
+  - 测试（29 个新增）：
+    - `test/features/search/search_repository_test.dart` — **12 个用例**覆盖空 filter / 标签 OR+AND / 星级 ≥/= / 日期范围+单端 / framed+unframed / 多维度交叉 / 无结果
+    - `test/features/search/search_screen_test.dart` — **4 个用例**覆盖 loading / empty / success 网格 / 星级 sheet 弹出
+  - **验证**: `flutter analyze` → **0 errors** | `flutter test` → **491/491 通过**（原 462 + 29 新）
+  - **预估**: 40 min
+  - **完成时间**: 2026-06-27
 - [ ] **M4-T9** 5 维过滤：标签(AND/OR) / **星级(≥N/=N)** / 日期 / 影集 / 模版状态
 - [ ] **M4-T10** 搜索结果批量操作（打标签 / 加星 / 删除）
 - [ ] **M4-T11** 测试：TagRepository / SearchFilter.matches（4 维交叉） / 星级 widget
