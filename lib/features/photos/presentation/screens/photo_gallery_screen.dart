@@ -18,6 +18,7 @@ import '../providers/photos_provider.dart';
 import '../widgets/apply_template_sheet.dart';
 import '../widgets/multi_select_app_bar.dart';
 import '../widgets/photo_grid_item.dart';
+import '../../../tags/presentation/widgets/tag_picker_sheet.dart';
 import 'permission_request_screen.dart';
 
 /// 相册主屏 — 设备所有照片的入口。
@@ -82,6 +83,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                 }
               },
               onDelete: () => _showDeleteConfirmation(context, ref),
+              onTags: () => _handleBatchTags(context, ref),
               onFrame: () => _handleBatchFrame(context, ref),
             )
           : AppBar(
@@ -139,6 +141,39 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
       ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
       unawaited(ref.read(photosProvider.notifier).refresh());
     }
+  }
+
+  /// 批量打标签。
+  ///
+  /// 弹出 [TagPickerSheet]，用户选择标签后，
+  /// 将选中的标签 ADD 到每张选中照片的现有标签列表中，
+  /// 然后退出多选模式并刷新列表。
+  Future<void> _handleBatchTags(BuildContext context, WidgetRef ref) async {
+    final selectedIds = ref.read(multiSelectProvider).selectedIds;
+    if (selectedIds.isEmpty) return;
+
+    // 读取所有选中照片的现有标签，取并集作为初始选中
+    final photoRepo = ref.read(photoRepositoryProvider);
+    final allPhotos = ref.read(photosProvider).valueOrNull ?? [];
+    final selectedPhotos = allPhotos.where((p) => selectedIds.contains(p.id));
+    final existingTagIds = <String>{};
+    for (final photo in selectedPhotos) {
+      existingTagIds.addAll(photo.tags);
+    }
+
+    await showTagPickerSheet(
+      context: context,
+      selectedTagIds: existingTagIds,
+      onConfirm: (selectedTagIds) async {
+        final newTags = selectedTagIds.toList();
+        for (final id in selectedIds) {
+          await photoRepo.updateTags(id, newTags);
+        }
+        if (!context.mounted) return;
+        ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
+        unawaited(ref.read(photosProvider.notifier).refresh());
+      },
+    );
   }
 
   /// 批量套模版.

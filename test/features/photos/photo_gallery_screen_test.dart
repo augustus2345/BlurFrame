@@ -18,6 +18,8 @@ import 'package:photo_beauty/features/photos/presentation/providers/photo_permis
 import 'package:photo_beauty/features/photos/presentation/providers/photos_provider.dart';
 import 'package:photo_beauty/features/photos/presentation/screens/photo_detail_screen.dart';
 import 'package:photo_beauty/features/photos/presentation/screens/photo_gallery_screen.dart';
+import 'package:photo_beauty/features/tags/data/models/tag_model.dart';
+import 'package:photo_beauty/features/tags/presentation/providers/tag_list_provider.dart';
 import 'package:photo_beauty/shared/services/settings_service.dart';
 import 'package:photo_manager/photo_manager.dart';
 
@@ -518,6 +520,78 @@ void main() {
       expect(find.text('确认删除'), findsOneWidget);
       expect(find.text('确定要删除选中的 1 张照片吗？'), findsOneWidget);
     });
+
+    testWidgets('批量打标签按钮弹出 TagPickerSheet 并更新标签', (tester) async {
+      // 照片带一些已有标签
+      final photoWithTags = PhotoModel(
+        id: 'photo_000',
+        path: '/a',
+        tags: ['tag_001'],
+      );
+      final photoWithoutTags = PhotoModel(
+        id: 'photo_001',
+        path: '/b',
+        tags: [],
+      );
+      final photosWithTags = [photoWithTags, photoWithoutTags];
+
+      final testTags = [
+        TagModel(id: 'tag_001', name: '风景', colorValue: 0xFF66BB6A),
+        TagModel(id: 'tag_002', name: '人物', colorValue: 0xFF42A5F5),
+      ];
+
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => photosWithTags);
+      when(() => repo.updateTags(any(), any())).thenAnswer((_) async {});
+
+      final permRepo = PhotoPermissionRepository(
+        getCurrent: () async => PermissionState.authorized,
+        request: () async => PermissionState.authorized,
+        openSettings: () async {},
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            photoPermissionRepositoryProvider.overrideWithValue(permRepo),
+            settingsServiceProvider.overrideWithValue(SettingsService.fromBox(box)),
+            photoRepositoryProvider.overrideWithValue(repo),
+            assetThumbnailLoaderProvider
+                .overrideWithValue((String id) async => tinyPng),
+            tagListProvider.overrideWith(() => _SuccessTagListNotifier(testTags)),
+          ],
+          child: const MaterialApp(home: PhotoGalleryScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按进入多选模式并选中一项
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+      expect(find.text('1 项已选中'), findsOneWidget);
+
+      // 点击标签按钮
+      await tester.tap(find.byKey(const Key('multi_select_tags')));
+      await tester.pumpAndSettle();
+
+      // TagPickerSheet 应该出现（标题和搜索框可见）
+      expect(find.text('标签选择'), findsOneWidget);
+      expect(find.text('搜索标签...'), findsOneWidget);
+
+      // "风景"标签（第一个）应该可见
+      expect(find.text('风景'), findsOneWidget);
+
+      // 点击"风景"标签选中它
+      await tester.tap(find.text('风景'));
+      await tester.pump();
+
+      // 点击完成按钮
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      // updateTags 应该被调用
+      verify(() => repo.updateTags('photo_000', any())).called(1);
+    });
   });
 }
 
@@ -532,4 +606,13 @@ class _LoadingPhotosNotifier extends PhotosNotifier {
   Future<void> refresh() async {
     // no-op: 保持 AsyncLoading，让 widget 测试 loading 分支。
   }
+}
+
+/// Test notifier for [TagListNotifier] that provides predefined tags.
+class _SuccessTagListNotifier extends TagListNotifier {
+  _SuccessTagListNotifier(this._tags);
+  final List<TagModel> _tags;
+
+  @override
+  Future<List<TagModel>> build() async => _tags;
 }

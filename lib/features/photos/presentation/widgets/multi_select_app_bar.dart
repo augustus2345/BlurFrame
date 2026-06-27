@@ -11,8 +11,8 @@ import 'package:flutter/material.dart';
 /// [totalCount] 照片总数（全选时用到）
 /// [onClose] 关闭多选模式
 /// [onSelectAll] 全选
-/// [onDelete] 批量删除（暂无功能，show snackbar 占位）
-/// [onTags] 批量打标签（暂无功能，show snackbar 占位）
+/// [onDelete] 批量删除
+/// [onTags] 批量打标签
 /// [onStar] 批量加星（暂无功能，show snackbar 占位）
 /// [onAlbum] 批量加影集（暂无功能，show snackbar 占位）
 /// [onFrame] 批量套模版（暂无功能，show snackbar 占位）

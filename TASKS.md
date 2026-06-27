@@ -635,7 +635,14 @@
   - **验证**: `flutter analyze` → **0 errors** | `flutter test` → **505/505 通过**
   - **预估**: 50 min
   - **完成时间**: 2026-06-27
-- [ ] **M5-T2** 批量打标签
+- [x] **M5-T2** 批量打标签
+  - 多选 → 选标签 → 批量写入 `PhotoModel.tags`（ADD 增量模式）
+  - 新增 `_handleBatchTags` 方法：读取选中照片已有标签取并集作为初始态 → `showTagPickerSheet` → 用户选择后逐张写入 → 退出多选 + 刷新
+  - `MultiSelectAppBar.onTags` 从 snackbar 占位升级为真实回调
+  - 测试 `photo_gallery_screen_test.dart` 新增 1 个用例：批量打标签 sheet 弹出并调用 `updateTags`
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **506/506 通过**
+  - **预估**: 20 min
+  - **完成时间**: 2026-06-27
 - [ ] **M5-T3** **批量加星**（新加，依赖 M4-T5 的 `starRating` 字段）
 - [ ] **M5-T4** 批量加入影集
 - [ ] **M5-T5** 批量删除（二次确认）
