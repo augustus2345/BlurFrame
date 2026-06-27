@@ -9,6 +9,7 @@ import '../../../photos/presentation/providers/asset_thumbnail_loader_provider.d
 import '../../data/models/album_model.dart';
 import '../providers/album_detail_provider.dart';
 import '../providers/album_list_provider.dart';
+import '../widgets/cover_picker_sheet.dart';
 
 /// 影集详情页路由目标 — `/albums/:id`（rootNavigator 上 push，全屏沉浸）。
 ///
@@ -107,6 +108,14 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                   setState(() => _isReorderMode = true);
                 },
               ),
+            // 换封面按钮
+            IconButton(
+              icon: const Icon(Icons.photo_library_outlined),
+              tooltip: '换封面',
+              onPressed: () {
+                _showCoverPicker(context, album);
+              },
+            ),
           ],
         ],
       ),
@@ -135,6 +144,30 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                   albumLayout: album.layout,
                 ),
     );
+  }
+
+  /// 显示封面选择 BottomSheet。
+  Future<void> _showCoverPicker(
+    BuildContext context,
+    AlbumModel album,
+  ) async {
+    final selectedPhotoId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => CoverPickerSheet(
+        albumId: album.id,
+        photoIds: album.photoIds,
+        currentCoverPhotoId: album.coverPhotoId,
+      ),
+    );
+
+    if (selectedPhotoId != null && selectedPhotoId != album.coverPhotoId) {
+      await ref.read(albumRepositoryProvider).setCover(
+            album.id,
+            selectedPhotoId,
+          );
+      await ref.read(albumListProvider.notifier).refresh();
+    }
   }
 }
 

@@ -467,7 +467,18 @@
   - **验证**: `flutter analyze` → **No issues found**（M3-T6 files）| `flutter test` → **384/384 通过**（原 379 + 5 新）
   - **预估**: 30 min
   - **完成时间**: 2026-06-27
-- [ ] **M3-T7** 换封面
+- [x] **M3-T7** 换封面
+  - 新增 `lib/features/albums/presentation/widgets/cover_picker_sheet.dart`：
+    - `CoverPickerSheet` 底部弹窗（DraggableScrollableSheet），展示影集所有照片 3 列网格
+    - 当前封面照片显示白色勾选圆圈标记
+    - 用户点击照片后关闭弹窗并返回选中的 photoId
+  - 修改 `lib/features/albums/presentation/screens/album_detail_screen.dart`：
+    - AppBar 新增"换封面"按钮（`Icons.photo_library_outlined`）
+    - `_showCoverPicker()` 方法：弹出 `CoverPickerSheet` → 用户选择后调用 `albumRepository.setCover()` 持久化 → `albumListProvider.refresh()` 刷新
+  - 新增测试 `test/features/albums/cover_picker_sheet_test.dart`：**6 个用例**覆盖标题/拖拽条/网格渲染/封面勾选标记/点击返回/空影集
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **390/390 通过**（原 384 + 6 新）
+  - **预估**: 20 min
+  - **完成时间**: 2026-06-27
 - [ ] **M3-T8** 测试：AlbumRepository
 
 **完成时间**: _待定_
