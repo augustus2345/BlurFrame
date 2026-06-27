@@ -11,7 +11,7 @@
 - **工程骨架**: ✅ 主题 / 路由 / Shell（**5 tab**） / Hive 启动 / 设置服务已就位
 - **M0**: ✅ 基础完成（测试 + 文档注释 + 依赖检查 + registerAdapters 占位 + `flutter run` 推至 M1）
 - **M1**: ✅ 完成（T1 权限引导 / T2 PhotoModel / T3 loadAllFromSystem / T4 exif 集成 / T5 3 列网格 + 缩略图懒加载 / T6 详情页 / T7 多选 / T8 详情页完整结构 / T9 测试修复 / T10 测试覆盖完整）
-- **M2**: 🟡 进行中（T1-T4 完成：FrameTemplate + 3 Layer + 内置 2 套 + 列表页 + 编辑器）
+- **M2**: ✅ 完成（T1-T7 完成：FrameTemplate + 3 Layer + 内置 2 套 + 列表页 + 编辑器 + FrameRenderer + 导出 + 测试）
 - **M3–M5**: ⬜ 全部为占位 EmptyState，待实现
 - **M6**: ⬜ 打磨 + Integration test
 
@@ -23,7 +23,7 @@
 | --- | --- | --- | --- | --- |
 | M0 | 基础设施（5 tab Shell） | ✅ 完成 | 0.5d | 0.5d |
 | M1 | 照片库 | 🟡 | 1.5d | 2.0d |
-| M2 | 模版（独立 tab） | ⬜ | 2.0d | 4.0d |
+| M2 | 模版（独立 tab） | ✅ 完成 | 2.0d | 4.0d |
 | M3 | 影集 | ⬜ | 1.0d | 5.0d |
 | M4 | 标签 + 搜索（push 二级页） | ⬜ | 1.5d | 6.5d |
 | M5 | 批量 + 删除 tab | ⬜ | 1.5d | 8.0d |
@@ -94,9 +94,11 @@ flutter run
 
 ---
 
-### M2 — 模版 🟡（独立 tab，对齐 mockup v3 / PRD v0.2）
+### M2 — 模版 ✅（独立 tab，对齐 mockup v3 / PRD v0.2）
 
 **目标**: **2 套**内置模版、模版 tab 列表（带使用次数）、模版编辑器（**3 种图层**）、渲染器、导出。
+
+**完成时间**: 2026-06-27
 
 **任务拆解**:
 1. `FrameTemplate` / `FrameLayer` 加 `@HiveType`（typeId 2–4：模板 + 3 种 layer；`usageCount` 写回 Hive 字段）+ `WatermarkPosition`（typeId 5 枚举）

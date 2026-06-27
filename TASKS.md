@@ -390,9 +390,19 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **275/275 通过**（原 269 + 6 新 applyTemplateProvider）
   - **预估**: 50 min
   - **完成时间**: 2026-06-27
-- [ ] **M2-T7** 测试：FrameRenderer 3 种 layer 各自合成 / `usageCount` 持久化往返 / 编辑器添加/删除图层 widget
-
-**完成时间**: _待定_
+- [x] **M2-T7** 测试：FrameRenderer 3 种 layer 各自合成 / `usageCount` 持久化往返 / 编辑器添加/删除图层 widget
+  - 新增 4 个测试文件：
+    - `test/features/frames/editor_subwidgets/blur_border_editor_test.dart` — **5 个用例**：强度滑块 / edge switch / 拖动触发回调 / intensity > 10 不崩溃
+    - `test/features/frames/editor_subwidgets/text_watermark_editor_test.dart` — **6 个用例**：4 控件渲染 / 初始文本填充 / text 变化触发回调 / dropdown 显示当前值 / 字号 slider / 外部 layer.text 变化同步 controller
+    - `test/features/frames/editor_subwidgets/color_stripe_editor_test.dart` — **6 个用例**：4 控件渲染 / 位置 dropdown 当前值 / width+cornerRadius slider 显示值+触发回调 / dropdown 切换触发 onPositionChanged
+    - `test/features/frames/editor_subwidgets/hex_color_field_test.dart` — **8 个用例**：`#AARRGGBB` 格式初始值 / 合法输入触发回调 / 非法输入显示 errorText / `0x` 前缀支持 / suffix 色块 / inputFormatter 只接受 hex 字符 / 清空调用 callback
+  - **M2-T7 测试覆盖确认**：
+    - **FrameRenderer 3 种 layer 合成** ✅ 已完整（M2-T5 的 `frame_renderer_test.dart` 14 个用例覆盖 BlurBorderLayer 3 个 / ColorStripeLayer 3 个 / TextWatermarkLayer 2 个 / z-order / error path / 内置模板）
+    - **`usageCount` 持久化往返** ✅ 已完整（`frame_template_test.dart` — `usageCount is mutable and persists after save`；`frame_repository_test.dart` — `incrementUsageCount` 3 个用例覆盖正常/缺失 id no-op/保留其他字段）
+    - **编辑器添加/删除图层 widget** ✅ 已完整（`layer_switch_group_test.dart` 4 个用例覆盖 enabled 切换 swap；新增 4 个子 widget 测试文件共 25 个用例覆盖参数编辑交互）
+  - **验证**: `flutter analyze` → **24 info（非阻塞）** | `flutter test` → **299/299 通过**（全量）
+  - **预估**: 40 min
+  - **完成时间**: 2026-06-27
 
 ---
 
