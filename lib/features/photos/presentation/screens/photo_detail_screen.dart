@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../frames/data/models/frame_template.dart';
 import '../../../frames/data/repositories/frame_repository.dart';
+import '../../../tags/presentation/widgets/tag_picker_sheet.dart';
 import '../../data/models/photo_model.dart';
 import '../providers/apply_template_provider.dart';
 import '../providers/full_image_loader_provider.dart';
@@ -160,6 +161,19 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
       );
   }
 
+  /// 显示 Lightroom 风格标签选择器 sheet，更新照片标签后刷新列表。
+  Future<void> _handleTags(String photoId, Set<String> currentTagIds) async {
+    await showTagPickerSheet(
+      context: context,
+      selectedTagIds: currentTagIds,
+      onConfirm: (selectedTagIds) async {
+        final repo = ref.read(photoRepositoryProvider);
+        await repo.updateTags(photoId, selectedTagIds.toList());
+        await ref.read(photosProvider.notifier).refresh();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncPhotos = ref.watch(photosProvider);
@@ -233,6 +247,7 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
             photoId: currentPhoto.id,
             onDelete: _handleDelete,
             onApplyTemplate: () => _showTemplateSheet(currentPhoto.id),
+            onTags: () => _handleTags(currentPhoto.id, currentPhoto.tags.toSet()),
           ),
         ],
       ),

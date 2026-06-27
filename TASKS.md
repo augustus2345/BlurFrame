@@ -528,7 +528,24 @@
   - **验证**: `flutter analyze` → **No issues found on M4-T3 files** | `flutter test` → **434/434 通过**（全量）
   - **预估**: 30 min
   - **完成时间**: 2026-06-27
-- [ ] **M4-T4** Lightroom 风格选择器（已选 + 全部 + 搜索）
+- [x] **M4-T4** Lightroom 风格选择器（已选 + 全部 + 搜索）
+  - 新增 1 个 lib 文件 + 1 个 test 文件：
+    - `lib/features/tags/presentation/widgets/tag_picker_sheet.dart`：`showTagPickerSheet` 入口函数 + `TagPickerSheet` StatefulWidget（搜索框 / 已选色块 / 全部标签列表 / Done 回调）
+    - `lib/features/photos/presentation/widgets/bottom_action_bar.dart`：新增 `onTags` 参数，标签按钮从 disabled 升级为可用
+    - `lib/features/photos/presentation/screens/photo_detail_screen.dart`：新增 `_handleTags` 方法 → `showTagPickerSheet` → `PhotoRepository.updateTags` 持久化 → `photosProvider.refresh()`
+    - `lib/features/photos/data/repositories/photo_repository.dart`：新增 `updateTags(String id, List<String> tags)` 方法
+  - 测试 `test/features/tags/tag_picker_sheet_test.dart`：**13 个用例**覆盖标题/搜索/已选区/标签列表/选中切换/X移除/Done回调/搜索过滤/清空/选中标签在过滤后仍显示/showTagPickerSheet 入口
+  - **M4-T4 功能可用度**：
+    - **标签选择 sheet** ✅ 完整：Lightroom 双栏风格（已选 + 全部）
+    - **搜索过滤** ✅ 完整：实时过滤标签名
+    - **标签切换选中** ✅ 完整：点击标签切换选中态
+    - **已选标签 chip** ✅ 完整：彩色 chip + X 移除按钮
+    - **Done 确认** ✅ 完整：回调传入最终选中 ID 集合，关闭 sheet
+    - **BottomActionBar 标签按钮** ✅ 完整：从 disabled 升级为可用，调用 `_handleTags`
+  - **关键设计决策**：`Material` 包装解决 `ListTile` ink splash 问题；`updateTags` 幂等 no-op；`initState` post-frame 刷新标签列表
+  - **验证**: `flutter analyze` → **0 errors** | `flutter test` → **447/447 通过**（M4-T4 13 新 + 434 旧）
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-27
 - [ ] **M4-T5** `PhotoModel` 加 **`@HiveField(7) starRating: int`**（0–5，CLAUDE.md §7.7：紧跟现有 0–6 之后；同步更新 `hive_service.registerAdapters` 与 7 个 `photo_model_test.dart` 字段数）
 - [ ] **M4-T6** 照片详情页"加星"交互：5 颗可点星标 → 写回 `PhotoModel.starRating`
 - [ ] **M4-T7** `SearchFilter` model（纯 dart，含 `tagIds` / **`minStarRating`** / `dateRange` / `albumId` / `framedState`）

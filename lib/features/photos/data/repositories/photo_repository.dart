@@ -53,6 +53,23 @@ class PhotoRepository {
   /// 清空整个 box（保留 box 本身）。
   Future<void> clear() => _box.clear();
 
+  /// 更新照片的标签列表。
+  ///
+  /// [id] 不存在则 no-op。
+  Future<void> updateTags(String id, List<String> tags) async {
+    final photo = get(id);
+    if (photo == null) return;
+    await save(PhotoModel(
+      id: photo.id,
+      path: photo.path,
+      width: photo.width,
+      height: photo.height,
+      takenAt: photo.takenAt,
+      tags: tags,
+      frameTemplateId: photo.frameTemplateId,
+    ));
+  }
+
   /// 扫描系统相册，返回合并后的照片列表。
   ///
   /// 合并规则：

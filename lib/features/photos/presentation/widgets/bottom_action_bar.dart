@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 ///
 /// - **删除** ✅ 完整：tap → 二次确认 → 调 [onDelete](photoId)
 /// - **模版** ✅ M2-T6：tap → 调用 [onApplyTemplate]（由 [PhotoDetailScreen] 展示选择器）
-/// - **标签 / 星级 / 影集** 🔒 disabled 占位（依赖 M4-T5 / M3 后续 milestone）
+/// - **标签** ✅ M4-T4：tap → 调用 [onTags]（由 [PhotoDetailScreen] 展示 Lightroom 风格选择器）
+/// - **星级 / 影集** 🔒 disabled 占位（依赖 M4-T5 / M3 后续 milestone）
 class BottomActionBar extends StatelessWidget {
   const BottomActionBar({
     required this.photoId,
     required this.onDelete,
     this.onApplyTemplate,
+    this.onTags,
     super.key,
   });
 
@@ -18,6 +20,9 @@ class BottomActionBar extends StatelessWidget {
 
   /// M2-T6 导出流程入口，由 [PhotoDetailScreen] 传入具体实现。
   final VoidCallback? onApplyTemplate;
+
+  /// M4-T4 标签选择器入口，由 [PhotoDetailScreen] 传入具体实现。
+  final VoidCallback? onTags;
 
   Future<void> _handleDelete(BuildContext context) async {
     final id = photoId;
@@ -71,11 +76,11 @@ class BottomActionBar extends StatelessWidget {
             icon: const Icon(Icons.delete_outline),
             onPressed: canAct ? () => _handleDelete(context) : null,
           ),
-          const IconButton(
-            key: Key('photo_detail_action_tags'),
-            tooltip: '标签（M4 接入）',
-            icon: Icon(Icons.local_offer_outlined),
-            onPressed: null,
+          IconButton(
+            key: const Key('photo_detail_action_tags'),
+            tooltip: '标签',
+            icon: const Icon(Icons.local_offer_outlined),
+            onPressed: canAct && onTags != null ? onTags : null,
           ),
           const IconButton(
             key: Key('photo_detail_action_star'),
