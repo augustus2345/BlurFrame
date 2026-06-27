@@ -566,7 +566,14 @@
   - **验证**: `flutter analyze` → **0 errors**（pre-existing warnings 非阻塞）| `flutter test` → **462/462 通过**（447 旧 + 15 新）
   - **预估**: 30 min
   - **完成时间**: 2026-06-27
-- [ ] **M4-T7** `SearchFilter` model（纯 dart，含 `tagIds` / **`minStarRating`** / `dateRange` / `albumId` / `framedState`）
+- [x] **M4-T7** `SearchFilter` model（纯 dart，含 `tagIds` / **`minStarRating`** / `dateRange` / `albumId` / `framedState`）
+  - 新增 5 维过滤字段：`tagIds`（多选）/ `tagMatchMode`（AND/OR）/ `minStarRating` + `starRatingMode`（≥N/=N）/ `dateFrom/dateTo` / `albumId` / `framedState`（all/framed/unframed）
+  - `SearchFilter` 不可变值对象 + `copyWith`（含 `clear*` 清除哨兵）+ `isEmpty` + `==`/`hashCode`
+  - 新增 3 个支持枚举：`TagMatchMode`（any/all）/ `StarRatingMatchMode`（greaterOrEqual/exact）/ `FramedState`（all/framed/unframed）
+  - 新增 `test/features/search/search_filter_test.dart`：**13 个用例**覆盖默认构造 / copyWith 保留字段 / copyWith 清除字段 / isEmpty 识别 / equality / hashCode / 枚举值完整性
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **475/475 通过**（462 旧 + 13 新）
+  - **预估**: 20 min
+  - **完成时间**: 2026-06-27
 - [ ] **M4-T8** 搜索二级页 `/search`（push，**入口在相册 tab 顶部搜索栏**）：过滤条件 chip 行 + 结果网格
 - [ ] **M4-T9** 5 维过滤：标签(AND/OR) / **星级(≥N/=N)** / 日期 / 影集 / 模版状态
 - [ ] **M4-T10** 搜索结果批量操作（打标签 / 加星 / 删除）
