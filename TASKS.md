@@ -596,7 +596,15 @@
   - search_repository_test.dart：12 个用例覆盖所有维度
   - **验证**: `flutter analyze` → **131 info trailing comma（非阻塞）** | `flutter test` → **491/491 通过**
   - **完成时间**: 2026-06-27（随 M4-T8 一起完成）
-- [ ] **M4-T10** 搜索结果批量操作（打标签 / 加星 / 删除）
+- [x] **M4-T10** 搜索结果批量操作（打标签 / 加星 / 删除）
+  - 多选模式下 AppBar 显示标签/星级/删除 3 个按钮
+  - 批量打标签：点击标签按钮 → TagPickerSheet → 选择标签 → 批量写入 `PhotoRepository.updateTags`
+  - 批量加星：点击星级按钮 → `showBatchStarRatingSheet`（0-5 星选项）→ 批量写入 `PhotoRepository.updateStarRating`
+  - 批量删除：已有实现，复用 `_showDeleteConfirmation`
+  - 新增 `star_rating_picker_sheet.dart`：批量星级选择底部弹窗
+  - 测试：search_screen_test.dart 新增 3 个用例（多选按钮显示 / 标签 sheet / 星级 sheet）
+  - **验证**: `flutter analyze` → **0 errors**（lib files）| `flutter test` → **494/494 通过**
+  - **完成时间**: 2026-06-27
 - [ ] **M4-T11** 测试：TagRepository / SearchFilter.matches（4 维交叉） / 星级 widget
 
 **完成时间**: _待定_

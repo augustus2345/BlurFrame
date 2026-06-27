@@ -9,8 +9,9 @@ import 'package:go_router/go_router.dart';
 import 'package:photo_beauty/features/photos/data/models/photo_model.dart';
 import 'package:photo_beauty/features/photos/presentation/providers/asset_thumbnail_loader_provider.dart';
 import 'package:photo_beauty/features/photos/presentation/providers/photos_provider.dart';
-import 'package:photo_beauty/features/search/data/models/search_filter.dart';
-import 'package:photo_beauty/features/search/presentation/providers/search_provider.dart';
+import 'package:photo_beauty/features/photos/data/repositories/photo_repository.dart';
+import 'package:photo_beauty/features/tags/data/models/tag_model.dart';
+import 'package:photo_beauty/features/tags/presentation/providers/tag_list_provider.dart';
 import 'package:photo_beauty/features/search/presentation/screens/search_screen.dart';
 import 'package:photo_beauty/features/search/presentation/widgets/filter_chip_bar.dart';
 import 'package:photo_beauty/features/search/presentation/widgets/star_rating_filter_sheet.dart';
@@ -129,6 +130,128 @@ void main() {
 
       expect(find.byType(StarRatingFilterSheet), findsOneWidget);
     });
+
+    testWidgets('长按进入多选模式，显示标签/星级/删除按钮', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            photosProvider.overrideWith(() => _PhotosNotifier([
+              _makePhoto('p1'),
+              _makePhoto('p2'),
+            ])),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (_) async => _tinyPngBytes(),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: GoRouter(
+              initialLocation: '/search',
+              routes: [
+                GoRoute(
+                  path: '/search',
+                  builder: (context, state) => const SearchScreen(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 长按第一张照片进入多选模式
+      await tester.longPress(find.byKey(const ValueKey('search_photo_p1')));
+      await tester.pumpAndSettle();
+
+      // AppBar 标题变为"已选择"
+      expect(find.text('已选择 1 张'), findsOneWidget);
+
+      // 标签、星级、删除按钮都出现
+      expect(find.byIcon(Icons.label_outline), findsOneWidget);
+      expect(find.byIcon(Icons.star_outline), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+    });
+
+    testWidgets('多选模式下点击标签按钮弹出 TagPickerSheet', (tester) async {
+      // photoRepositoryProvider 会被 _handleBatchTags 调用，需要 mock 避免 Hive 访问
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            photosProvider.overrideWith(() => _PhotosNotifier([_makePhoto('p1')])),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (_) async => _tinyPngBytes(),
+            ),
+            tagListProvider.overrideWith(() => _EmptyTagListNotifier()),
+            photoRepositoryProvider.overrideWith((ref) => _FakePhotoRepository()),
+          ],
+          child: MaterialApp.router(
+            routerConfig: GoRouter(
+              initialLocation: '/search',
+              routes: [
+                GoRoute(
+                  path: '/search',
+                  builder: (context, state) => const SearchScreen(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 进入多选模式
+      await tester.longPress(find.byKey(const ValueKey('search_photo_p1')));
+      await tester.pumpAndSettle();
+
+      // 点击标签按钮
+      await tester.tap(find.byIcon(Icons.label_outline));
+      await tester.pumpAndSettle();
+
+      // TagPickerSheet 出现
+      expect(find.text('标签选择'), findsOneWidget);
+    });
+
+    testWidgets('多选模式下点击星级按钮弹出批量星级选择 sheet', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            photosProvider.overrideWith(() => _PhotosNotifier([_makePhoto('p1')])),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (_) async => _tinyPngBytes(),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: GoRouter(
+              initialLocation: '/search',
+              routes: [
+                GoRoute(
+                  path: '/search',
+                  builder: (context, state) => const SearchScreen(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 进入多选模式
+      await tester.longPress(find.byKey(const ValueKey('search_photo_p1')));
+      await tester.pumpAndSettle();
+
+      // 点击星级按钮
+      await tester.tap(find.byIcon(Icons.star_outline));
+      await tester.pumpAndSettle();
+
+      // 批量星级选择 sheet 出现
+      expect(find.text('批量设置星级'), findsOneWidget);
+      // 0-5 星按钮都出现
+      expect(find.text('清除'), findsOneWidget);
+      expect(find.text('1 星'), findsOneWidget);
+      expect(find.text('5 星'), findsOneWidget);
+    });
   });
 }
 
@@ -180,4 +303,37 @@ class _PhotosNotifier extends PhotosNotifier {
 
   @override
   Future<List<PhotoModel>> build() async => _photos;
+}
+
+class _FakePhotoRepository implements PhotoRepository {
+  @override
+  PhotoModel? get(String id) => null;
+
+  @override
+  Future<void> save(PhotoModel photo) async {}
+
+  @override
+  List<PhotoModel> getAll() => [];
+
+  @override
+  Future<void> delete(String id) async {}
+
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<void> updateTags(String id, List<String> tags) async {}
+
+  @override
+  Future<void> updateStarRating(String id, int starRating) async {}
+
+  @override
+  Future<List<PhotoModel>> loadAllFromSystem() async => [];
+}
+
+class _EmptyTagListNotifier extends TagListNotifier {
+  @override
+  Future<List<TagModel>> build() async => [];
+  @override
+  Future<void> refresh() async {}
 }

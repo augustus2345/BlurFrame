@@ -4,11 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../photos/data/models/photo_model.dart';
-import '../../../photos/data/repositories/photo_repository.dart';
 import '../../../photos/presentation/providers/asset_thumbnail_loader_provider.dart';
 import '../../../photos/presentation/providers/multi_select_provider.dart';
 import '../../../photos/presentation/providers/photos_provider.dart';
 import '../../../photos/presentation/widgets/photo_grid_item.dart';
+import '../../../photos/presentation/widgets/star_rating_picker_sheet.dart';
+import '../../../tags/presentation/widgets/tag_picker_sheet.dart';
 import '../../data/models/search_filter.dart';
 import '../providers/search_provider.dart';
 import '../widgets/filter_chip_bar.dart';
@@ -75,6 +76,16 @@ class SearchScreen extends ConsumerWidget {
       title: Text('已选择 $selectedCount 张'),
       actions: [
         IconButton(
+          icon: const Icon(Icons.label_outline),
+          tooltip: '标签',
+          onPressed: () => _handleBatchTags(context, ref),
+        ),
+        IconButton(
+          icon: const Icon(Icons.star_outline),
+          tooltip: '星级',
+          onPressed: () => _handleBatchStarRating(context, ref),
+        ),
+        IconButton(
           icon: const Icon(Icons.delete_outline),
           tooltip: '删除',
           onPressed: () => _showDeleteConfirmation(context, ref),
@@ -84,13 +95,15 @@ class SearchScreen extends ConsumerWidget {
   }
 
   Future<void> _showDeleteConfirmation(
-      BuildContext context, WidgetRef ref) async {
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final selectedIds = ref.read(multiSelectProvider).selectedIds;
     if (selectedIds.isEmpty) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx,) => AlertDialog(
         title: const Text('确认删除'),
         content: Text('确定要删除选中的 ${selectedIds.length} 张照片吗？'),
         actions: [
@@ -112,8 +125,67 @@ class SearchScreen extends ConsumerWidget {
         await photoRepo.delete(id);
       }
       ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
-      ref.read(photosProvider.notifier).refresh();
+      await ref.read(photosProvider.notifier).refresh();
     }
+  }
+
+  Future<void> _handleBatchTags(BuildContext context, WidgetRef ref) async {
+    final selectedIds = ref.read(multiSelectProvider).selectedIds;
+    if (selectedIds.isEmpty) return;
+
+    // 先获取当前选中照片的标签集合（所有选中照片标签的并集）
+    final photoRepo = ref.read(photoRepositoryProvider);
+    final allSelectedTags = <String>{};
+    for (final id in selectedIds) {
+      final photo = photoRepo.get(id);
+      if (photo != null) {
+        allSelectedTags.addAll(photo.tags);
+      }
+    }
+
+    if (!context.mounted) return;
+
+    await showTagPickerSheet(
+      context: context,
+      selectedTagIds: allSelectedTags,
+      onConfirm: (tagIds) async {
+        final tagList = tagIds.toList();
+        for (final id in selectedIds) {
+          await photoRepo.updateTags(id, tagList);
+        }
+        ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
+        await ref.read(photosProvider.notifier).refresh();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('已为 ${selectedIds.length} 张照片设置标签')),
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _handleBatchStarRating(BuildContext context, WidgetRef ref) async {
+    final selectedIds = ref.read(multiSelectProvider).selectedIds;
+    if (selectedIds.isEmpty) return;
+
+    if (!context.mounted) return;
+
+    await showBatchStarRatingSheet(
+      context: context,
+      onConfirm: (starRating) async {
+        final photoRepo = ref.read(photoRepositoryProvider);
+        for (final id in selectedIds) {
+          await photoRepo.updateStarRating(id, starRating);
+        }
+        ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
+        await ref.read(photosProvider.notifier).refresh();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('已为 ${selectedIds.length} 张照片设置 $starRating 星')),
+          );
+        }
+      },
+    );
   }
 }
 
