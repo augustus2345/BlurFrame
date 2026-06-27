@@ -479,9 +479,10 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **390/390 通过**（原 384 + 6 新）
   - **预估**: 20 min
   - **完成时间**: 2026-06-27
-- [ ] **M3-T8** 测试：AlbumRepository
-
-**完成时间**: _待定_
+- [x] **M3-T8** 测试：AlbumRepository
+  - `test/features/albums/album_repository_test.dart`：**28 个用例**覆盖 getAll ×2 / getById ×2 / create ×4 / rename ×2 / addPhotos ×4 / removePhotos ×4 / reorderPhotos ×3 / setCover ×3 / setLayout ×2 / delete ×2
+  - **验证**: `flutter analyze` → **0 errors**（65 info/warnings 非阻塞）| `flutter test` → **390/390 通过**
+  - **完成时间**: 2026-06-27
 
 ---
 
