@@ -605,7 +605,12 @@
   - 测试：search_screen_test.dart 新增 3 个用例（多选按钮显示 / 标签 sheet / 星级 sheet）
   - **验证**: `flutter analyze` → **0 errors**（lib files）| `flutter test` → **494/494 通过**
   - **完成时间**: 2026-06-27
-- [ ] **M4-T11** 测试：TagRepository / SearchFilter.matches（4 维交叉） / 星级 widget
+- [x] **M4-T11** 测试：TagRepository / SearchFilter.matches（4 维交叉） / 星级 widget
+  - TagRepository：20 个用例（CRUD + 删除保护 + isTagInUse）✅ 已有
+  - SearchFilter.matches 4 维交叉：新增 2 个用例（4维全开有结果 / 4维全开无结果），共 14 个用例
+  - 星级 widget：8 个用例（tap/渲染/clamp）✅ 已有
+  - **验证**: `flutter test` → **496/496 通过**（+2 新测试）
+  - **完成时间**: 2026-06-27
 
 **完成时间**: _待定_
 

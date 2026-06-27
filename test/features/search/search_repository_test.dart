@@ -118,6 +118,43 @@ void main() {
       expect(result.map((p) => p.id).toSet(), {'p1', 'p2', 'p5'});
     });
 
+    test('4 维交叉过滤 — 标签+星级+日期+模版状态', () {
+      // 标签:t1 + 星级≥3 + 日期2024年 + 已套模版
+      final result = repo.matches(
+        SearchFilter(
+          tagIds: const ['t1'],
+          tagMatchMode: TagMatchMode.any,
+          minStarRating: 3,
+          starRatingMode: StarRatingMatchMode.greaterOrEqual,
+          dateFrom: DateTime(2024, 1, 1),
+          dateTo: DateTime(2024, 12, 31),
+          framedState: FramedState.framed,
+        ),
+        photos,
+      );
+      // p1: t1, star=3, date=2024-03-15, framed=f1 ✓
+      // p2: t1, star=5, date=2024-05-20, framed=null ✗
+      // p5: t1, star=4, date=2024-07-01, framed=f1 ✓
+      expect(result.map((p) => p.id).toSet(), {'p1', 'p5'});
+    });
+
+    test('4 维交叉过滤 — 无匹配结果', () {
+      // 标签:t2 + 星级≥4 + 已套模版（但t2的p3只有1星且日期2024-01-01）
+      final result = repo.matches(
+        const SearchFilter(
+          tagIds: ['t2'],
+          tagMatchMode: TagMatchMode.any,
+          minStarRating: 4,
+          starRatingMode: StarRatingMatchMode.greaterOrEqual,
+          framedState: FramedState.framed,
+        ),
+        photos,
+      );
+      // p2: t2, star=5, framed=null ✗
+      // p3: t2, star=1, framed=f2 ✗
+      expect(result.length, 0);
+    });
+
     test('无结果返回空列表', () {
       final result = repo.matches(
         const SearchFilter(minStarRating: 5, starRatingMode: StarRatingMatchMode.exact),
