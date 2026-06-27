@@ -546,7 +546,13 @@
   - **验证**: `flutter analyze` → **0 errors** | `flutter test` → **447/447 通过**（M4-T4 13 新 + 434 旧）
   - **预估**: 30 min
   - **完成时间**: 2026-06-27
-- [ ] **M4-T5** `PhotoModel` 加 **`@HiveField(7) starRating: int`**（0–5，CLAUDE.md §7.7：紧跟现有 0–6 之后；同步更新 `hive_service.registerAdapters` 与 7 个 `photo_model_test.dart` 字段数）
+- [x] **M4-T5** `PhotoModel` 加 **`@HiveField(7) starRating: int`**（0–5，CLAUDE.md §7.7：紧跟现有 0–6 之后；同步更新 `hive_service.registerAdapters` 与 7 个 `photo_model_test.dart` 字段数）
+  - `PhotoModel` 新增 `@HiveField(7) starRating: int`（默认 0，表示未评）
+  - `dart run build_runner build` → `photo_model.g.dart` 重新生成（writeByte 7→8，新增字段 7 读写）
+  - `photo_model_test.dart` 更新 2 处：`all fields set` 测试加 `starRating: 5` 断言；`minimal fields` 测试加 `expect(loaded.starRating, 0)` 断言；文档注释更新字段数为 8
+  - **验证**: `flutter analyze` → **0 errors**（107 info/warnings 均为既有非阻塞项）| `flutter test` → **447/447 通过**
+  - **预估**: 15 min
+  - **完成时间**: 2026-06-27
 - [ ] **M4-T6** 照片详情页"加星"交互：5 颗可点星标 → 写回 `PhotoModel.starRating`
 - [ ] **M4-T7** `SearchFilter` model（纯 dart，含 `tagIds` / **`minStarRating`** / `dateRange` / `albumId` / `framedState`）
 - [ ] **M4-T8** 搜索二级页 `/search`（push，**入口在相册 tab 顶部搜索栏**）：过滤条件 chip 行 + 结果网格

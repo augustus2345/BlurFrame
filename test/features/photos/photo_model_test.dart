@@ -8,11 +8,12 @@ import 'package:photo_beauty/features/photos/data/models/photo_model.dart';
 /// `PhotoModelAdapter`).
 ///
 /// Behavior contract (CLAUDE.md §1.3 — test defines expected behavior):
-/// - All 7 fields survive a save/load roundtrip with byte-for-byte equality.
+/// - All 8 fields survive a save/load roundtrip with byte-for-byte equality.
 /// - `width` / `height` / `takenAt` / `frameTemplateId` can be `null` (the
 ///   type is nullable for a reason — older photos / EXIF read failures).
 /// - `tags` is preserved as `List<String>` (Hive built-in, no custom adapter
 ///   needed).
+/// - `starRating` defaults to 0 (no rating); preserves 0–5 values.
 /// - `DateTime` microsecond precision is preserved.
 /// - Hive typeId is `1` (matches `PLAN.md` R5 reservation).
 ///
@@ -49,6 +50,7 @@ void main() {
         takenAt: null, // 微秒精度在单独测试中验证
         tags: <String>['travel', 'beach'],
         frameTemplateId: 'classic-white',
+        starRating: 5,
       );
 
       await box.put(original.id, original);
@@ -62,6 +64,7 @@ void main() {
       expect(loaded.height, 3024);
       expect(loaded.tags, <String>['travel', 'beach']);
       expect(loaded.frameTemplateId, 'classic-white');
+      expect(loaded.starRating, 5);
     });
   });
 
@@ -83,6 +86,7 @@ void main() {
       expect(loaded.takenAt, isNull);
       expect(loaded.tags, isEmpty);
       expect(loaded.frameTemplateId, isNull);
+      expect(loaded.starRating, 0);
     });
   });
 

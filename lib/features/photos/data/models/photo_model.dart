@@ -23,6 +23,7 @@ class PhotoModel {
     this.takenAt,
     this.tags = const <String>[],
     this.frameTemplateId,
+    this.starRating = 0,
   });
 
   /// `photo_manager` 平台资源 ID（Android 上是 media store id，iOS 上是 PHAsset localIdentifier）。
@@ -58,4 +59,10 @@ class PhotoModel {
   /// 已套用的相框模板 ID（`FrameTemplate.id`）。未套用时为 `null`。
   @HiveField(6)
   final String? frameTemplateId;
+
+  /// 用户评星级（0–5，0 = 未评）。
+  ///
+  /// 在 `@HiveField(7)`（CLAUDE.md §7.7：编号不可重用的新字段）。
+  @HiveField(7)
+  final int starRating;
 }
