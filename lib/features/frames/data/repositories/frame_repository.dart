@@ -129,6 +129,48 @@ class FrameRepository {
     await _box.delete(id);
   }
 
+  /// Duplicate a template (built-in or user) as a fresh, editable copy.
+  ///
+  /// The new template:
+  /// - gets a new `id` derived from the source id (suffix `-copy-N` where N
+  ///   is the smallest non-colliding integer starting at 1);
+  /// - has the same `name`, `layers`, and `createdAt` as the source;
+  /// - is **always** marked `isBuiltIn: false`, so the user can edit/delete
+  ///   it without the [BuiltInTemplateException] protection;
+  /// - starts with `usageCount: 0` — the copy is a brand new template
+  ///   with no history.
+  ///
+  /// Throws [StateError] if the source id does not exist in the box.
+  Future<FrameTemplate> duplicate(String sourceId) async {
+    final source = getById(sourceId);
+    if (source == null) {
+      throw StateError('Cannot duplicate: template "$sourceId" not found');
+    }
+    final newId = _nextDuplicateId(sourceId);
+    final copy = FrameTemplate(
+      id: newId,
+      name: source.name,
+      layers: source.layers,
+      isBuiltIn: false,
+      usageCount: 0,
+      createdAt: source.createdAt,
+    );
+    await _box.put(newId, copy);
+    return copy;
+  }
+
+  /// Find the smallest suffix `N` such that `${sourceId}-copy-N` is unused.
+  ///
+  /// Always returns at least 1 — even if the very first attempt collides
+  /// (extremely unlikely, but defensive against user data from migrations).
+  String _nextDuplicateId(String sourceId) {
+    var n = 1;
+    while (_box.containsKey('$sourceId-copy-$n')) {
+      n++;
+    }
+    return '$sourceId-copy-$n';
+  }
+
   /// Seed the box with built-in templates if they are not yet present.
   ///
   /// Idempotent: safe to call on every app startup. Only writes when a
@@ -143,11 +185,8 @@ class FrameRepository {
   }
 }
 
+/// DI entry point for the [FrameRepository]. Overridden in tests with
+/// `frameRepositoryProvider.overrideWithValue(mock)`.
 final frameRepositoryProvider = Provider<FrameRepository>((ref) {
   return FrameRepository();
-});
-
-final frameTemplateListProvider =
-    FutureProvider<List<FrameTemplate>>((ref) async {
-  return ref.watch(frameRepositoryProvider).getAll();
 });

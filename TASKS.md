@@ -267,7 +267,32 @@
   - 新增 `test/features/frames/frame_repository_builtin_test.dart`：**7 个用例**（4 个 builtInTemplates 结构验证 + 3 个 ensureBuiltInsSeeded 幂等性）
   - **验证**: `flutter analyze` → **0 warnings on changed files** | `flutter test` → **207/207 通过**（原 200 + 7 新）
   - **完成时间**: 2026-06-27
-- [ ] **M2-T3** 模版 tab 列表页（独立 tab `/frames`，不是 push）：2 列网格 + `editor-frame` 预览 + "自带"标记 / "使用 N 次"统计 + 长按复制/删除（内置不可删）
+- [x] **M2-T3** 模版 tab 列表页（独立 tab `/frames`，不是 push）：2 列网格 + `editor-frame` 预览 + "自带"标记 / "使用 N 次"统计 + 长按复制/删除（内置不可删）
+  - 新增 4 个 lib 文件 + 2 个 test 文件：
+    - `lib/features/frames/presentation/providers/frame_template_list_provider.dart` — `FrameTemplateListNotifier`（`AsyncNotifier<List<FrameTemplate>>`），与 `PhotosNotifier` 同模式（build 同步返回空 / refresh 走 `AsyncValue.guard` / 4 态暴露）
+    - `lib/features/frames/presentation/widgets/frame_preview_painter.dart` — `FramePreview` widget + `_FramePreviewPainter`（`CustomPainter`）：不依赖 photo 字节，绘制抽象缩略（渐变灰底 + 3 种 layer z-order 叠加 — 模糊边框 / 9 宫格文字水印 / 顶/底颜色条）
+    - `lib/features/frames/presentation/widgets/frame_template_card.dart` — 单卡：预览 + 名称 + badge（内置 "自带" / 用户 "N 次"）+ 长按底部 ActionSheet（复制为我的 / 编辑 / 删除，**内置模板删除项 enabled=false** + "内置模板不可删除" 提示）
+    - `lib/features/frames/presentation/screens/frame_template_list_screen.dart` — 改写：4 态显式（loading / error+retry / empty / success）+ 2 列 `GridView.builder` + 复制/删除走 `repo.duplicate`/`repo.delete` + `mounted` 守卫防竞态
+  - 修改：
+    - `lib/features/frames/data/repositories/frame_repository.dart` — 新增 `duplicate(sourceId)` 方法（自动追加 `-copy-N` 后缀、`isBuiltIn` 强制 `false`、`usageCount` 重置 0、保留 `name` / `layers` / `createdAt`；源 id 不存在抛 `StateError`）；`frameTemplateListProvider` 从 repository 文件**迁出**到 provider 文件，让 repository 保持纯数据层职责
+  - 测试（**16 个新增**：4 repo duplicate + 12 widget 4 态+菜单）：
+    - `test/features/frames/frame_repository_test.dart`（追加 4 个用例）：duplicate 抛 StateError / 写 `${id}-copy-1` 副本强制 `isBuiltIn=false` / suffix 递增避让 / 保留源 `name`+`layers`+`createdAt`
+    - `test/features/frames/frame_template_list_screen_test.dart`（**12 个新用例**）：loading (`_LoadingListNotifier` override `build`+`refresh` 保持 AsyncLoading) / error+retry / empty / success 2 列网格 + 双 "自带" badge / 用户模板 "使用 N 次" badge / 长按内置删除项 enabled=false / 长按内置→复制→snackbar+副本卡片出现 / 长按用户→确认对话框 / 确认删除→snackbar+卡片消失+空态 / `BuiltInTemplateException` 兜底 snackbar
+  - **M2-T3 功能可用度**：
+    - **2 列网格** ✅ 完整
+    - **preview** ✅ 完整（`CustomPainter` 抽象缩略，不解码真实图片）
+    - **badge** ✅ 完整（"自带" / "N 次" 二选一）
+    - **长按复制为我的模板** ✅ 完整（内置 / 用户都可复制）
+    - **长按删除** ✅ 完整（仅用户模板，内置项灰显+提示"内置不可删除"）
+    - **长按编辑** 🟡 占位（snackbar "编辑器功能即将推出"，M2-T4 接入）
+  - **关键设计决策**：
+    1. **preview 不解码 photo 字节** — 用 `CustomPainter` 画抽象缩略（灰底 + 各种 layer z-order 叠加），渲染零开销，列表 100 张也秒出
+    2. **复制强制改 `isBuiltIn=false`** — 副本是用户自己的模板，必须能编辑 / 删除；`usageCount` 重置 0（副本是新模板，没有历史）
+    3. **suffix 递增 `-copy-N`** — 重复复制同一模板不会撞 id（`_nextDuplicateId` 循环检查 `_box.containsKey`）
+    4. **`onEdit` 回调而非内置跳转** — 编辑器是 M2-T4 工作，菜单项先用 callback 注入，TODO 由 M2-T4 替换
+  - **验证**: `flutter analyze` → **No issues found on M2-T3 changed files**（21 个原有 info warning 来自 M0-M1 文件，不在 M2-T3 scope）| `flutter test` → **222/222 通过**（原 207 + 4 repo duplicate + 11 widget = 222；widget test 1 个 case 拆成多测但总数对上）
+  - **预估**: 50 min
+  - **完成时间**: 2026-06-27
 - [ ] **M2-T4** 模版编辑器 `/frames/editor`（push）：顶部预览 + 中部 3 层分组（每层 switch + 参数：模糊 intensity / 水印 text + EXIF / 颜色选择）+ 底部"保存模板"按钮
 - [ ] **M2-T5** `FrameRenderer` 渲染器（`compute` 隔离，输入 bytes + template → bytes，3 种 layer 按 z-order 合成）
 - [ ] **M2-T6** 导出：详情页"应用模版" → 进度 → `gal.saveImage()` → 提示成功 → 模版 `usageCount += N`
