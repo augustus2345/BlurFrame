@@ -748,7 +748,16 @@
   - **验证**: `flutter analyze` → 0 errors（117 pre-existing info/warnings 非阻塞）| `flutter test` → **565+9=574/574 通过**（含 integration test）
   - **预估**: 40 min
   - **完成时间**: 2026-06-28
-- [ ] **M6-T5** 错误处理：渲染失败重试 / 权限拒绝去设置
+- [x] **M6-T5** 错误处理：渲染失败重试 / 权限拒绝去设置
+  - `ApplyTemplateNotifier` 新增 `retry()` 方法：存储上次参数，重试时直接重新执行 `applyTemplate` 流程（不再只是 reset 状态）
+  - `BatchApplyTemplateNotifier` 新增 `retry()` 方法 + `BatchApplyTemplateError` 状态：有失败时在结果 sheet 显示"重试失败项"按钮
+  - `PermissionRequestScreen` 的 denied/restricted 已有"打开系统设置"按钮 ✅
+  - `photo_detail_screen.dart` 的错误 snackBar 重试按钮改为调用 `retry()`（真正重新触发应用流程）
+  - `_DoneContent` 在有失败时显示"重试失败项" + "完成"两个按钮
+  - 新增 `_ErrorContent` widget 展示严重错误并提供重试/关闭选项
+  - **验证**: `flutter analyze` → 0 errors（pre-existing warnings 非阻塞）| `flutter test` → **565/565 通过**
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-28
 - [ ] **M6-T6** README 同步
 
 **完成时间**: _待定_

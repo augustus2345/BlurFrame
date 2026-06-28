@@ -73,12 +73,19 @@ class GalImageSaver implements ImageSaver {
 ///
 /// 防竞态：[applyTemplateProvider] 是 `StateNotifierProvider`，每次
 /// 进入详情页创建新实例，页面 pop 时自动销毁，不会跨页面残留。
+///
+/// 重试支持：[retry] 方法重新执行上次失败的操作（失败时保留参数）。
 class ApplyTemplateNotifier extends StateNotifier<ApplyTemplateState> {
   ApplyTemplateNotifier({ImageSaver? imageSaver})
       : _imageSaver = imageSaver ?? const GalImageSaver(),
         super(const ApplyTemplateInitial());
 
   final ImageSaver _imageSaver;
+
+  /// 上次执行的参数（用于重试）。
+  FrameTemplate? _lastTemplate;
+  Future<Uint8List?> Function()? _lastFullImageLoader;
+  FrameRepository? _lastFrameRepository;
 
   /// 完整的导出流程：渲染 → 保存 → 更新 usageCount。
   ///
@@ -93,6 +100,11 @@ class ApplyTemplateNotifier extends StateNotifier<ApplyTemplateState> {
     required Future<Uint8List?> Function() fullImageLoader,
     required FrameRepository frameRepository,
   }) async {
+    // 保存参数以便重试
+    _lastTemplate = template;
+    _lastFullImageLoader = fullImageLoader;
+    _lastFrameRepository = frameRepository;
+
     state = const ApplyTemplateRendering();
 
     // ── Step 1: 获取原始图片字节 ─────────────────────────────
@@ -140,6 +152,23 @@ class ApplyTemplateNotifier extends StateNotifier<ApplyTemplateState> {
 
   /// 重置到初始态（用户关闭错误提示后调用）。
   void reset() => state = const ApplyTemplateInitial();
+
+  /// 重试上次失败的导出操作。
+  ///
+  /// 仅在 [_lastTemplate] 等参数有效时可用。
+  Future<void> retry() async {
+    final template = _lastTemplate;
+    final fullImageLoader = _lastFullImageLoader;
+    final frameRepository = _lastFrameRepository;
+    if (template == null || fullImageLoader == null || frameRepository == null) {
+      return;
+    }
+    await applyTemplate(
+      template: template,
+      fullImageLoader: fullImageLoader,
+      frameRepository: frameRepository,
+    );
+  }
 }
 
 /// DI entry point — 每个详情页创建自己的 provider 实例（页面级状态）。

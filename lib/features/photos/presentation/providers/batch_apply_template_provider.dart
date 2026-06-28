@@ -53,18 +53,31 @@ class BatchApplyTemplateDone extends BatchApplyTemplateState {
   final String templateName;
 }
 
+/// 错误态 — 批量处理中途遇到无法恢复的错误（而非部分失败）。
+class BatchApplyTemplateError extends BatchApplyTemplateState {
+  const BatchApplyTemplateError({required this.message});
+
+  final String message;
+}
+
 /// 批量套模版编排 Notifier.
 ///
 /// 管理批量渲染流程：
 /// 1. 并发控制：最多同时渲染 2 张（防止 OOM）
 /// 2. 进度跟踪：每批完成后更新进度
 /// 3. 结果统计：成功/失败计数
+/// 4. 重试支持：失败时保留上次参数，支持重新执行
 class BatchApplyTemplateNotifier extends StateNotifier<BatchApplyTemplateState> {
   BatchApplyTemplateNotifier({ImageSaver? imageSaver})
       : _imageSaver = imageSaver ?? const GalImageSaver(),
         super(const BatchApplyTemplateInitial());
 
   final ImageSaver _imageSaver;
+
+  /// 上次执行的参数（用于重试）。
+  FrameTemplate? _lastTemplate;
+  Map<String, Future<Uint8List?> Function()> _lastPhotoLoaders = {};
+  FrameRepository? _lastFrameRepository;
 
   /// 批量套模版流程.
   ///
@@ -76,6 +89,11 @@ class BatchApplyTemplateNotifier extends StateNotifier<BatchApplyTemplateState> 
     required Map<String, Future<Uint8List?> Function()> photoLoaders,
     required FrameRepository frameRepository,
   }) async {
+    // 保存参数以便重试
+    _lastTemplate = template;
+    _lastPhotoLoaders = photoLoaders;
+    _lastFrameRepository = frameRepository;
+
     final total = photoLoaders.length;
     if (total == 0) return;
 
@@ -176,6 +194,25 @@ class BatchApplyTemplateNotifier extends StateNotifier<BatchApplyTemplateState> 
 
   /// 重置到初始态.
   void reset() => state = const BatchApplyTemplateInitial();
+
+  /// 重试上次失败的批量操作.
+  ///
+  /// 仅在 [_lastTemplate] 等参数有效时可用。
+  Future<void> retry() async {
+    final template = _lastTemplate;
+    final photoLoaders = _lastPhotoLoaders;
+    final frameRepository = _lastFrameRepository;
+    if (template == null || frameRepository == null || photoLoaders.isEmpty) {
+      return;
+    }
+    // 重置后重新执行
+    state = const BatchApplyTemplateInitial();
+    await applyTemplateBatch(
+      template: template,
+      photoLoaders: photoLoaders,
+      frameRepository: frameRepository,
+    );
+  }
 }
 
 /// DI entry point.

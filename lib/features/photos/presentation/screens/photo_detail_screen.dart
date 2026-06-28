@@ -129,8 +129,8 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
               action: SnackBarAction(
                 label: '重试',
                 onPressed: () {
-                  // 重置后用户可以重新选择模板
-                  ref.read(applyTemplateProvider.notifier).reset();
+                  // 重试上次失败的模板应用
+                  ref.read(applyTemplateProvider.notifier).retry();
                 },
               ),
             ),

@@ -452,6 +452,8 @@ class _BatchResultSheet extends StatelessWidget {
       return _ProcessingContent(state: s);
     } else if (s is BatchApplyTemplateDone) {
       return _DoneContent(state: s);
+    } else if (s is BatchApplyTemplateError) {
+      return _ErrorContent(message: s.message);
     }
     return const SizedBox.shrink();
   }
@@ -556,12 +558,41 @@ class _DoneContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('完成'),
-        ),
+        if (state.failureCount > 0)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton(
+                key: const Key('batch_retry_button'),
+                onPressed: () {
+                  // 重试：关闭当前 sheet，重新执行批量操作
+                  Navigator.of(context).pop();
+                  // 通过 provider 触发重试
+                  _retryBatchApply(context);
+                },
+                child: const Text('重试失败项'),
+              ),
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('完成'),
+              ),
+            ],
+          )
+        else
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('完成'),
+          ),
       ],
     );
+  }
+
+  void _retryBatchApply(BuildContext context) {
+    // 使用 ProviderScope 方式访问 notifier
+    // ignore: use_build_context_synchronously
+    final container = ProviderScope.containerOf(context);
+    container.read(batchApplyTemplateProvider.notifier).retry();
   }
 }
 
@@ -594,6 +625,59 @@ class _ResultChip extends StatelessWidget {
           Text(label, style: TextStyle(color: color)),
         ],
       ),
+    );
+  }
+}
+
+/// 错误内容.
+class _ErrorContent extends StatelessWidget {
+  const _ErrorContent({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        const Icon(
+          Icons.error_outline,
+          size: 48,
+          color: Colors.red,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          '批量应用失败',
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          style: theme.textTheme.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            OutlinedButton(
+              key: const Key('batch_error_retry_button'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                final container = ProviderScope.containerOf(context);
+                container.read(batchApplyTemplateProvider.notifier).retry();
+              },
+              child: const Text('重试'),
+            ),
+            const SizedBox(width: 12),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
