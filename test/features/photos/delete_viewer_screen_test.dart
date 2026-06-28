@@ -177,5 +177,48 @@ void main() {
       expect(find.text('切换过滤'), findsOneWidget);
     });
 
+    testWidgets('swipe left (finger moves left) navigates to previous photo', (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 3);
+      await tester.pumpWidget(buildSubject(photos: photos));
+      await tester.pumpAndSettle();
+
+      // Start at "1 / 3"
+      expect(find.text('1 / 3'), findsOneWidget);
+
+      // Go to photo 2 first
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+      expect(find.text('2 / 3'), findsOneWidget);
+
+      // Swipe left (finger moves left, dx < 0) → previous photo
+      await tester.fling(
+        find.byType(GestureDetector).first,
+        const Offset(-100, 0), // negative x = swipe left
+        500,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 / 3'), findsOneWidget);
+    });
+
+    testWidgets('swipe right (finger moves right) navigates to next photo', (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 3);
+      await tester.pumpWidget(buildSubject(photos: photos));
+      await tester.pumpAndSettle();
+
+      // Start at "1 / 3"
+      expect(find.text('1 / 3'), findsOneWidget);
+
+      // Swipe right (finger moves right, dx > 0) → next photo
+      await tester.fling(
+        find.byType(GestureDetector).first,
+        const Offset(100, 0), // positive x = swipe right
+        500,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 / 3'), findsOneWidget);
+    });
+
   });
 }

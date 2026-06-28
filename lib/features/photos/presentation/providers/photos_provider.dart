@@ -41,6 +41,15 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoModel>> {
       () => ref.read(photoRepositoryProvider).loadAllFromSystem(),
     );
   }
+
+  /// 删除指定 id 的照片（仅删除 App 内记录，不影响系统相册原图）。
+  ///
+  /// 删除后刷新列表，让 UI 立即感知变化。
+  Future<void> delete(String id) async {
+    await ref.read(photoRepositoryProvider).delete(id);
+    // 刷新列表：删除后当前 index 会由 DeleteViewerNotifier.onDeleted 处理
+    await refresh();
+  }
 }
 
 /// 全局 photos 状态入口。

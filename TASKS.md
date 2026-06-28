@@ -679,7 +679,16 @@
   - **验证**: `flutter analyze` → **0 errors on M5-T6 files**（pre-existing batch_apply_template_sheet.dart 错误非本次引入）| `flutter test` → **534/534 通过**
   - **预估**: 40 min
   - **完成时间**: 2026-06-28
-- [ ] **M5-T7** 删除 tab **手势**：↑ 滑 → 删除 + 撤销 toast / ← 滑 → 上一张 / → 滑 → 下一张
+- [x] **M5-T7** 删除 tab **手势**：↑ 滑 → 删除 + 撤销 toast / ← 滑 → 上一张 / → 滑 → 下一张
+  - 新增 `_SwipePhotoViewer` widget（`GestureDetector.onPanStart/End` 检测滑动方向）
+  - 方向判定：`|dx| > |dy|` → 水平（←/→导航）；否则 → 垂直（↑ 删除）
+  - 阈值 50px，防止误触
+  - 删除后显示 5s 撤销 toast（调用 `PhotoRepository.save` 恢复）
+  - `PhotosNotifier` 新增 `delete(id)` 方法
+  - 新增测试 `delete_viewer_screen_test.dart`：2 个用例（swipe left → previous / swipe right → next）
+  - **验证**: `flutter analyze` → **0 errors** | `flutter test` → **536/536 通过**
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-28
 - [ ] **M5-T8** 删除 tab 屏幕内提示 hint（首次显示 3s 后渐隐）+ 顶栏 `⋯` 菜单（退出/批量/过滤）
 - [ ] **M5-T9** 防竞态：sessionId 校验 / 撤销栈 `Queue<({assetId, sessionId})>`
 - [ ] **M5-T10** 测试：删除 tab 状态机（4 条路径） / 多选 Provider / 批量加星
