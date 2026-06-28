@@ -758,9 +758,17 @@
   - **验证**: `flutter analyze` → 0 errors（pre-existing warnings 非阻塞）| `flutter test` → **565/565 通过**
   - **预估**: 30 min
   - **完成时间**: 2026-06-28
-- [ ] **M6-T6** README 同步
-
-**完成时间**: _待定_
+- [x] **M6-T6** README 同步
+  - 更新目录结构：新增 `core/utils/`（LRU 缓存）、`search` feature 描述、各 feature 内部 data/presentation 分层说明
+  - 更新技术栈：明确 `gal`（导出）、暗色模式完整支持
+  - 更新路由总览：5 tab（相册/影集/相框/删除/设置）+ `/search` push 二级页 + 详情/编辑器/标签等完整路由表
+  - 更新核心功能表：新增相册（缩略图/EXIF）、星级、批量操作、删除 tab、5 维搜索
+  - 新增「设计要点」章节：7 条架构决策（照片留磁盘/分层合成/4态显式/防竞态/并发控制/LRU/分页）
+  - 新增 Hive TypeId 规划表
+  - 新增测试运行说明（单元/widget/integration）
+  - **验证**: `flutter analyze` → 0 errors（123 info trailing comma 非阻塞）| `flutter test` → **565/565 通过**
+  - **预估**: 20 min
+  - **完成时间**: 2026-06-28
 
 ---
 
