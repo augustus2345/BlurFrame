@@ -235,7 +235,7 @@ void main() {
 
       // Swipe left (finger moves left, dx < 0) → previous photo
       await tester.fling(
-        find.byType(GestureDetector).first,
+        find.byKey(const Key('swipe_photo_viewer')),
         const Offset(-100, 0), // negative x = swipe left
         500,
       );
@@ -254,7 +254,7 @@ void main() {
 
       // Swipe right (finger moves right, dx > 0) → next photo
       await tester.fling(
-        find.byType(GestureDetector).first,
+        find.byKey(const Key('swipe_photo_viewer')),
         const Offset(100, 0), // positive x = swipe right
         500,
       );
@@ -311,9 +311,9 @@ void main() {
       // Should start at "1 / 3"
       expect(find.text('1 / 3'), findsOneWidget);
 
-      // Swipe up using GestureDetector (same approach as existing horizontal swipe tests)
+      // Swipe up using _SwipePhotoViewer
       await tester.fling(
-        find.byType(GestureDetector).first,
+        find.byKey(const Key('swipe_photo_viewer')),
         const Offset(0, -100), // negative dy = swipe up
         500,
       );

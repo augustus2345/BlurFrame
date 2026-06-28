@@ -139,7 +139,7 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
               // 手势：↑ 滑删除 / ← 上一张 / → 下一张
               Center(
                 child: _SwipePhotoViewer(
-                  key: ValueKey(currentPhoto.id),
+                  key: const Key('swipe_photo_viewer'),
                   photoId: currentPhoto.id,
                   aspectRatio: aspectRatio,
                   fullImageLoader: fullImageLoader,
@@ -564,18 +564,33 @@ class _SwipePhotoViewer extends StatefulWidget {
 class _SwipePhotoViewerState extends State<_SwipePhotoViewer> {
   double _startX = 0;
   double _startY = 0;
+  bool _isDragging = false;
   static const double _threshold = 50;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onPanStart: (details) {
-        _startX = details.globalPosition.dx;
-        _startY = details.globalPosition.dy;
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (event) {
+        _startX = event.position.dx;
+        _startY = event.position.dy;
+        _isDragging = false;
       },
-      onPanEnd: (details) {
-        final dx = details.globalPosition.dx - _startX;
-        final dy = details.globalPosition.dy - _startY;
+      onPointerMove: (event) {
+        // 一旦检测到明显的拖动，标记为已拖动（用于决定是否阻止 InteractiveViewer 的手势）
+        if (!_isDragging) {
+          final dx = (event.position.dx - _startX).abs();
+          final dy = (event.position.dy - _startY).abs();
+          if (dx > 10 || dy > 10) {
+            _isDragging = true;
+          }
+        }
+      },
+      onPointerUp: (event) {
+        if (!_isDragging) return;
+
+        final dx = event.position.dx - _startX;
+        final dy = event.position.dy - _startY;
 
         // 方向判定：|dx| > |dy| → 水平；否则 → 垂直
         if (dx.abs() > dy.abs()) {
@@ -591,6 +606,7 @@ class _SwipePhotoViewerState extends State<_SwipePhotoViewer> {
             widget.onSwipeUp();
           }
         }
+        _isDragging = false;
       },
       child: _PhotoLoader(
         key: ValueKey('loader_${widget.photoId}'),
