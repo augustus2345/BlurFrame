@@ -92,6 +92,9 @@ class PhotoRepository {
 
   /// 扫描系统相册，返回合并后的照片列表。
   ///
+  /// M6-T3 优化：内部使用分页流式获取（[PhotoManagerDatasource.fetchAllPaged]），
+  /// 每页 60 张逐批处理后再合并，避免 1000+ 照片时内存峰值过高。
+  ///
   /// 合并规则：
   /// - 对每个系统照片，先用 `get(id)` 找 Hive 中已有的 [PhotoModel]
   /// - 系统元数据（`path` / `width` / `height` / `takenAt`）覆盖 Hive 同名字段
@@ -103,21 +106,23 @@ class PhotoRepository {
   /// 副作用：每个合并结果都 `save` 回 Hive，便于下次扫描对齐 + 重启后能列出
   /// "已扫过但没用户数据"的照片（M5 清理模式可据此显示进度）。
   Future<List<PhotoModel>> loadAllFromSystem() async {
-    final systemPhotos = await _datasource.fetchAll();
     final result = <PhotoModel>[];
-    for (final sys in systemPhotos) {
-      final existing = get(sys.id);
-      final merged = PhotoModel(
-        id: sys.id,
-        path: sys.path ?? existing?.path ?? '',
-        width: sys.width ?? existing?.width,
-        height: sys.height ?? existing?.height,
-        takenAt: sys.takenAt ?? existing?.takenAt,
-        tags: existing?.tags ?? const <String>[],
-        frameTemplateId: existing?.frameTemplateId,
-      );
-      await save(merged);
-      result.add(merged);
+    await for (final batch in _datasource.fetchAllPaged()) {
+      for (final sys in batch) {
+        final existing = get(sys.id);
+        final merged = PhotoModel(
+          id: sys.id,
+          path: sys.path ?? existing?.path ?? '',
+          width: sys.width ?? existing?.width,
+          height: sys.height ?? existing?.height,
+          takenAt: sys.takenAt ?? existing?.takenAt,
+          tags: existing?.tags ?? const <String>[],
+          frameTemplateId: existing?.frameTemplateId,
+          starRating: existing?.starRating ?? 0,
+        );
+        await save(merged);
+        result.add(merged);
+      }
     }
     return result;
   }

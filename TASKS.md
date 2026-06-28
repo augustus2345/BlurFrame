@@ -733,7 +733,15 @@
   - 验证: `flutter analyze` → 0 errors（11 pre-existing warnings 非阻塞）| `flutter test` → **548/548** 通过
   - **预估**: 30 min
   - **完成时间**: 2026-06-28
-- [ ] **M6-T3** 性能：1000 张分页 + 缩略图 LRU
+- [x] **M6-T3** 性能：1000 张分页 + 缩略图 LRU
+  - 新增 `lib/core/utils/lru_cache.dart`：`LruCache<K, V>` 基于 `LinkedHashMap` 实现，支持 `get`/`put`/`getOrPut`/`clear`，maxSize=100（缓存约 2–5 MB）
+  - 修改 `asset_thumbnail_loader_provider.dart`：注入 LRU 缓存，首次加载后自动缓存，同一 assetId 后续直接从缓存返回
+  - 修改 `photo_manager_datasource.dart`：新增 `fetchAllPaged()` 流式分页获取（每页 60 张），`fetchAll()` 内部改为流式遍历
+  - 修改 `photo_repository.dart`：`loadAllFromSystem()` 改用 `fetchAllPaged` 流式处理，每批处理后逐个合并，避免 1000+ 照片时内存峰值过高
+  - 新增 `test/core/utils/lru_cache_test.dart`：17 个用例覆盖 LRU 基本操作、eviction、getOrPut、容量限制等
+  - **验证**: `flutter analyze` → 0 errors（117 pre-existing info/warnings 非阻塞）| `flutter test` → **565/565 通过**
+  - **预估**: 40 min
+  - **完成时间**: 2026-06-28
 - [ ] **M6-T4** Integration test：开 App → 授权 → 网格 → 详情 → 套模板 → 导出
 - [ ] **M6-T5** 错误处理：渲染失败重试 / 权限拒绝去设置
 - [ ] **M6-T6** README 同步

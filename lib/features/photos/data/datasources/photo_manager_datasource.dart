@@ -50,24 +50,70 @@ class PhotoManagerDatasource {
 
   final Future<List<SystemPhoto>> Function() _fetchAll;
 
-  /// 抓取所有相册里的所有照片（不分页）。
+  /// 每页加载的默认照片数量（M6-T3 性能优化）。
+  static const int defaultPageSize = 60;
+
+  /// 抓取所有相册里的所有照片（流式分页）。
   ///
-  /// M1-T3 阶段：直接抓完；M6-T3 性能优化时改用流式分页。
+  /// M6-T3 性能优化：按 page-by-page 分页抓取，每页 [defaultPageSize] 张，
+  /// 避免一次性加载 1000+ 张时内存峰值过高。
   /// 已按相册 path 顺序串联，结果顺序 = 第一个 path 全部 + 第二个 path 全部 + ...
   Future<List<SystemPhoto>> fetchAll() => _fetchAll();
 
-  /// 生产路径的默认实现：走 `PhotoManager` 真实 API。
-  static Future<List<SystemPhoto>> _defaultFetchAll() async {
+  /// 流式分页抓取照片，每次返回一批。
+  ///
+  /// 当 [pageSize] <= 0 时使用 [defaultPageSize]。
+  /// 遍历所有相册的每一页，yield 每批结果。
+  /// 用于 [PhotosNotifier] 的增量加载支持。
+  Stream<List<SystemPhoto>> fetchAllPaged({int pageSize = defaultPageSize}) async* {
+    final effectivePageSize = pageSize <= 0 ? defaultPageSize : pageSize;
     final paths = await PhotoManager.getAssetPathList();
-    final all = <SystemPhoto>[];
+
     for (final path in paths) {
-      // M1-T3 暂不分页，先一次性抓完。M6-T3 改为 page-by-page 流式抓取。
-      final assets = await path.getAssetListPaged(page: 0, size: 1000);
-      for (final asset in assets) {
-        all.add(mapAsset(asset));
+      int page = 0;
+      while (true) {
+        final assets = await path.getAssetListPaged(
+          page: page,
+          size: effectivePageSize,
+        );
+        if (assets.isEmpty) break;
+
+        final systemPhotos = assets.map(mapAsset).toList();
+        yield systemPhotos;
+
+        // 如果返回的数量小于 pageSize，说明已经是最后一页
+        if (assets.length < effectivePageSize) break;
+        page++;
       }
     }
+  }
+
+  /// 生产路径的默认实现：走 `PhotoManager` 真实 API，流式分页抓取。
+  static Future<List<SystemPhoto>> _defaultFetchAll() async {
+    final all = <SystemPhoto>[];
+    await for (final batch in _defaultFetchAllPaged()) {
+      all.addAll(batch);
+    }
     return all;
+  }
+
+  /// 分页抓取的默认生成器实现。
+  static Stream<List<SystemPhoto>> _defaultFetchAllPaged() async* {
+    const pageSize = defaultPageSize;
+    final paths = await PhotoManager.getAssetPathList();
+
+    for (final path in paths) {
+      int page = 0;
+      while (true) {
+        final assets = await path.getAssetListPaged(page: page, size: pageSize);
+        if (assets.isEmpty) break;
+
+        yield assets.map(mapAsset).toList();
+
+        if (assets.length < pageSize) break;
+        page++;
+      }
+    }
   }
 
   /// `AssetEntity` → [SystemPhoto] 的边界转换。

@@ -44,7 +44,9 @@ void main() {
   });
 
   Future<List<PhotoModel>> runLoad(List<SystemPhoto> system) {
-    when(() => datasource.fetchAll()).thenAnswer((_) async => system);
+    // M6-T3: loadAllFromSystem 现在使用 fetchAllPaged (Stream) 而非 fetchAll (Future)
+    when(() => datasource.fetchAllPaged(pageSize: any(named: 'pageSize')))
+        .thenAnswer((_) => Stream.fromIterable([system]));
     return repo.loadAllFromSystem();
   }
 
