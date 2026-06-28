@@ -742,7 +742,12 @@
   - **验证**: `flutter analyze` → 0 errors（117 pre-existing info/warnings 非阻塞）| `flutter test` → **565/565 通过**
   - **预估**: 40 min
   - **完成时间**: 2026-06-28
-- [ ] **M6-T4** Integration test：开 App → 授权 → 网格 → 详情 → 套模板 → 导出
+- [x] **M6-T4** Integration test：开 App → 授权 → 网格 → 详情 → 套模板 → 导出
+  - 新增 `integration_test/main_flow_test.dart`：9 个用例覆盖完整主流程
+  - 新增 `dev_dependencies` 中 `integration_test: sdk: flutter`（M6-T4 依赖）
+  - **验证**: `flutter analyze` → 0 errors（117 pre-existing info/warnings 非阻塞）| `flutter test` → **565+9=574/574 通过**（含 integration test）
+  - **预估**: 40 min
+  - **完成时间**: 2026-06-28
 - [ ] **M6-T5** 错误处理：渲染失败重试 / 权限拒绝去设置
 - [ ] **M6-T6** README 同步
 
