@@ -64,10 +64,12 @@ class PhotoManagerDatasource {
   ///
   /// 当 [pageSize] <= 0 时使用 [defaultPageSize]。
   /// 遍历所有相册的每一页，yield 每批结果。
+  /// 同一张照片出现在多个相册时（iOS/macOS 跨相册复制），只返回第一次出现的结果。
   /// 用于 [PhotosNotifier] 的增量加载支持。
   Stream<List<SystemPhoto>> fetchAllPaged({int pageSize = defaultPageSize}) async* {
     final effectivePageSize = pageSize <= 0 ? defaultPageSize : pageSize;
     final paths = await PhotoManager.getAssetPathList();
+    final seenIds = <String>{};
 
     for (final path in paths) {
       int page = 0;
@@ -78,7 +80,9 @@ class PhotoManagerDatasource {
         );
         if (assets.isEmpty) break;
 
-        final systemPhotos = assets.map(mapAsset).toList();
+        // 过滤掉已经在其他相册出现过的 asset（跨相册去重）
+        final uniqueAssets = assets.where((a) => seenIds.add(a.id)).toList();
+        final systemPhotos = uniqueAssets.map(mapAsset).toList();
         yield systemPhotos;
 
         // 如果返回的数量小于 pageSize，说明已经是最后一页
@@ -101,6 +105,7 @@ class PhotoManagerDatasource {
   static Stream<List<SystemPhoto>> _defaultFetchAllPaged() async* {
     const pageSize = defaultPageSize;
     final paths = await PhotoManager.getAssetPathList();
+    final seenIds = <String>{};
 
     for (final path in paths) {
       int page = 0;
@@ -108,7 +113,9 @@ class PhotoManagerDatasource {
         final assets = await path.getAssetListPaged(page: page, size: pageSize);
         if (assets.isEmpty) break;
 
-        yield assets.map(mapAsset).toList();
+        // 过滤掉已经在其他相册出现过的 asset（跨相册去重）
+        final uniqueAssets = assets.where((a) => seenIds.add(a.id)).toList();
+        yield uniqueAssets.map(mapAsset).toList();
 
         if (assets.length < pageSize) break;
         page++;
