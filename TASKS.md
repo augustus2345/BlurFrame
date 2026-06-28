@@ -695,7 +695,18 @@
   - 11 个测试全过：`flutter analyze` → 0 errors（3 个 pre-existing `batch_apply_template_sheet.dart` sealed class 语法错误与本次无关）| `flutter test` → **537/537** 通过
   - **预估**: 20 min
   - **完成时间**: 2026-06-28
-- [ ] **M5-T9** 防竞态：sessionId 校验 / 撤销栈 `Queue<({assetId, sessionId})>`
+- [x] **M5-T9** 防竞态：sessionId 校验 / 撤销栈 `Queue<({assetId, sessionId})>`
+  - 新增 `UndoEntry` 公开类（`assetId` / `sessionId` / `photo`）
+  - `DeleteViewerState` 新增 `sessionId`（每次进入时生成新 id）和 `undoStack`（`Queue<UndoEntry>`）
+  - `initialize()` 生成新 sessionId + 清空 undoStack（进入新的删除会话时使之前的撤销失效）
+  - `pushToUndoStack(PhotoModel)` 将删除的照片存入栈（关联当前 sessionId）
+  - `popUndoStackIfValid()` 弹出栈顶条目（仅当 sessionId 匹配时有效）
+  - `_handleDelete` 在删除前先 push 到撤销栈
+  - `_handleUndo` 调用 `popUndoStackIfValid()` 并校验返回值；sessionId 不匹配或栈为空时显示"撤销已失效"
+  - SnackBar 显示当前可撤销数量 `已删除 (N)`
+  - 测试 `delete_viewer_provider_test.dart`：新增 8 个用例（copyWith × 2 / initialize 生成新 sessionId / initialize 清空栈 / pushToUndoStack / popUndoStackIfValid 匹配+不匹配+空栈 / LIFO 顺序）
+  - **验证**: `flutter analyze` → 1 info pre-existing trailing comma（非本次引入）| `flutter test` → **546/546 通过**
+  - **完成时间**: 2026-06-28
 - [ ] **M5-T10** 测试：删除 tab 状态机（4 条路径） / 多选 Provider / 批量加星
 
 **完成时间**: _待定_

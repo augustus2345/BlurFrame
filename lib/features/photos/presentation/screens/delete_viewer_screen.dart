@@ -221,12 +221,19 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
   }
 
   /// 处理上滑删除：删除照片 + 显示撤销 toast（5s）。
+  ///
+  /// M5-T9 防竞态：
+  /// - 将已删除照片存入撤销栈（关联当前 sessionId）
+  /// - 撤销时校验 sessionId，拒绝跨会话撤销
   Future<void> _handleDelete(BuildContext context, String photoId) async {
     final photos = ref.read(photosProvider).valueOrNull ?? [];
     final deletedPhoto = photos.firstWhere(
       (p) => p.id == photoId,
       orElse: () => throw StateError('photo not found: $photoId'),
     );
+
+    // M5-T9：先将照片推入撤销栈（关联当前 sessionId）
+    ref.read(deleteViewerProvider.notifier).pushToUndoStack(deletedPhoto);
 
     // 删除照片（只删 App 记录，不影响系统相册）
     await ref.read(photosProvider.notifier).delete(photoId);
@@ -242,20 +249,42 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
     }
 
     // 显示撤销 toast（5s）
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('已删除'),
+        content: Text('已删除 (${ref.read(deleteViewerProvider).undoStack.length})'),
         duration: const Duration(seconds: 5),
         action: SnackBarAction(
           label: '撤销',
-          onPressed: () async {
-            // 撤销：重新保存该照片记录
-            await ref.read(photoRepositoryProvider).save(deletedPhoto);
-            await ref.read(photosProvider.notifier).refresh();
-          },
+          onPressed: () => _handleUndo(context),
         ),
       ),
     );
+  }
+
+  /// 处理撤销：从撤销栈弹出顶层条目，校验 sessionId 后恢复照片。
+  ///
+  /// M5-T9 防竞态：sessionId 不匹配时拒绝撤销（防止跨会话操作）。
+  Future<void> _handleUndo(BuildContext context) async {
+    final notifier = ref.read(deleteViewerProvider.notifier);
+    final entry = notifier.popUndoStackIfValid();
+
+    if (entry == null) {
+      // sessionId 不匹配或栈为空
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('撤销已失效'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    // 撤销：重新保存该照片记录
+    await ref.read(photoRepositoryProvider).save(entry.photo);
+    await ref.read(photosProvider.notifier).refresh();
   }
 
   void _showMenuSheet(BuildContext context) {
