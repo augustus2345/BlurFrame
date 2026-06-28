@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../photos/data/models/photo_model.dart';
 import '../../../photos/presentation/providers/asset_thumbnail_loader_provider.dart';
 import '../../../photos/presentation/providers/photos_provider.dart';
@@ -168,10 +169,18 @@ class _AlbumCreateScreenState extends ConsumerState<AlbumCreateScreen> {
           Expanded(
             child: asyncPhotos.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const Center(child: Text('加载照片失败')),
+              error: (_, __) => const EmptyState(
+                icon: Icons.error_outline,
+                title: '加载失败',
+                message: '无法读取相册照片',
+              ),
               data: (photos) {
                 if (photos.isEmpty) {
-                  return const Center(child: Text('暂无照片'));
+                  return const EmptyState(
+                    icon: Icons.photo_library_outlined,
+                    title: '暂无照片',
+                    message: '相册里没有可添加的照片',
+                  );
                 }
                 return _PhotoPickerGrid(
                   photos: photos,

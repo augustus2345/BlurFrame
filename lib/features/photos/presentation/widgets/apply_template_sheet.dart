@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../frames/data/models/frame_template.dart';
 import '../../../frames/presentation/providers/frame_template_list_provider.dart';
 import '../../../frames/presentation/widgets/frame_preview_painter.dart';
@@ -77,19 +78,19 @@ class ApplyTemplateSheet extends ConsumerWidget {
                       key: Key('apply_template_sheet_loading'),
                     ),
                   ),
-                  error: (error, _) => Center(
-                    child: Text(
-                      '加载失败：$error',
-                      key: const Key('apply_template_sheet_error'),
-                    ),
+                  error: (error, _) => const EmptyState(
+                    key: Key('apply_template_sheet_error'),
+                    icon: Icons.error_outline,
+                    title: '加载失败',
+                    message: '无法读取相框模板',
                   ),
                   data: (templates) {
                     if (templates.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          '暂无可用模板',
-                          key: Key('apply_template_sheet_empty'),
-                        ),
+                      return const EmptyState(
+                        key: Key('apply_template_sheet_empty'),
+                        icon: Icons.crop_square_outlined,
+                        title: '暂无相框模板',
+                        message: '点击右下角 + 创建一个新模板',
                       );
                     }
                     return ListView.builder(

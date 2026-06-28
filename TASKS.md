@@ -720,7 +720,12 @@
 
 ## M6 — 打磨 ⬜
 
-- [ ] **M6-T1** 全局 4 态显式（loading/error/empty/success）
+- [x] **M6-T1** 全局 4 态显式（loading/error/empty/success）
+  - 审计全 app 所有 `AsyncValue.when` 异步加载点，确认 10 个主要 screen 已完整覆盖 4 态
+  - 修复 2 处缺陷：`album_create_screen.dart`（error/empty 裸 Text → EmptyState）和 `apply_template_sheet.dart`（error/empty 裸 Center/Text → EmptyState）
+  - **验证**: `flutter analyze` → 0 errors（138 pre-existing info/warnings 非阻塞）| `flutter test` → **548/548** 通过
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-28
 - [ ] **M6-T2** 暗色模式过一遍
 - [ ] **M6-T3** 性能：1000 张分页 + 缩略图 LRU
 - [ ] **M6-T4** Integration test：开 App → 授权 → 网格 → 详情 → 套模板 → 导出
