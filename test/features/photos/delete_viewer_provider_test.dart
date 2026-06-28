@@ -110,11 +110,13 @@ void main() {
         isLoading: true,
         sessionId: 'test-session',
         undoStack: Queue<UndoEntry>(),
+        pendingDeleteIds: {'photo-1'},
       );
       final copy = state.copyWith();
       expect(copy.currentIndex, 3);
       expect(copy.isLoading, true);
       expect(copy.sessionId, 'test-session');
+      expect(copy.pendingDeleteIds, {'photo-1'});
     });
 
     test('updates only currentIndex', () {
@@ -123,6 +125,7 @@ void main() {
         isLoading: false,
         sessionId: 'test-session',
         undoStack: Queue<UndoEntry>(),
+        pendingDeleteIds: {},
       );
       final copy = state.copyWith(currentIndex: 5);
       expect(copy.currentIndex, 5);
@@ -135,6 +138,7 @@ void main() {
         isLoading: false,
         sessionId: 'test-session',
         undoStack: Queue<UndoEntry>(),
+        pendingDeleteIds: {},
       );
       final copy = state.copyWith(isLoading: true);
       expect(copy.currentIndex, 3);
@@ -147,6 +151,7 @@ void main() {
         isLoading: false,
         sessionId: 'old-session',
         undoStack: Queue<UndoEntry>(),
+        pendingDeleteIds: {},
       );
       final copy = state.copyWith(sessionId: 'new-session');
       expect(copy.sessionId, 'new-session');
@@ -158,6 +163,7 @@ void main() {
         isLoading: false,
         sessionId: 'test-session',
         undoStack: Queue<UndoEntry>(),
+        pendingDeleteIds: {},
       );
       final entry = UndoEntry(
         assetId: 'photo-1',
@@ -175,6 +181,18 @@ void main() {
       final newStack = Queue<UndoEntry>.from(state.undoStack)..add(entry);
       final copy = state.copyWith(undoStack: newStack);
       expect(copy.undoStack.length, 1);
+    });
+
+    test('updates only pendingDeleteIds', () {
+      final state = DeleteViewerState(
+        currentIndex: 3,
+        isLoading: false,
+        sessionId: 'test-session',
+        undoStack: Queue<UndoEntry>(),
+        pendingDeleteIds: {},
+      );
+      final copy = state.copyWith(pendingDeleteIds: {'photo-1', 'photo-2'});
+      expect(copy.pendingDeleteIds, {'photo-1', 'photo-2'});
     });
   });
 
@@ -305,6 +323,48 @@ void main() {
       expect(entry3!.assetId, 'photo-1');
 
       expect(container.read(deleteViewerProvider).undoStack.length, 0);
+    });
+  });
+
+  group('DeleteViewerNotifier pendingDelete', () {
+    test('togglePendingDelete adds photo to pending list', () {
+      notifier.togglePendingDelete('photo-1');
+      expect(container.read(deleteViewerProvider).pendingDeleteIds, {'photo-1'});
+      expect(notifier.pendingDeleteCount, 1);
+    });
+
+    test('togglePendingDelete removes photo if already in list', () {
+      notifier.togglePendingDelete('photo-1');
+      notifier.togglePendingDelete('photo-1');
+      expect(container.read(deleteViewerProvider).pendingDeleteIds, <String>{});
+      expect(notifier.pendingDeleteCount, 0);
+    });
+
+    test('togglePendingDelete works with multiple photos', () {
+      notifier.togglePendingDelete('photo-1');
+      notifier.togglePendingDelete('photo-2');
+      notifier.togglePendingDelete('photo-3');
+      expect(container.read(deleteViewerProvider).pendingDeleteIds, {'photo-1', 'photo-2', 'photo-3'});
+      expect(notifier.pendingDeleteCount, 3);
+    });
+
+    test('clearPendingDelete removes all pending photos', () {
+      notifier.togglePendingDelete('photo-1');
+      notifier.togglePendingDelete('photo-2');
+      notifier.clearPendingDelete();
+      expect(container.read(deleteViewerProvider).pendingDeleteIds, <String>{});
+      expect(notifier.pendingDeleteCount, 0);
+    });
+
+    test('initialize clears pendingDeleteIds', () {
+      notifier.togglePendingDelete('photo-1');
+      notifier.togglePendingDelete('photo-2');
+      expect(notifier.pendingDeleteCount, 2);
+
+      notifier.initialize(0);
+
+      expect(container.read(deleteViewerProvider).pendingDeleteIds, <String>{});
+      expect(notifier.pendingDeleteCount, 0);
     });
   });
 }

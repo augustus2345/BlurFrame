@@ -143,7 +143,8 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
                   photoId: currentPhoto.id,
                   aspectRatio: aspectRatio,
                   fullImageLoader: fullImageLoader,
-                  onSwipeUp: () => _handleDelete(context, currentPhoto.id),
+                  isMarkedDelete: viewerState.pendingDeleteIds.contains(currentPhoto.id),
+                  onSwipeUp: () => _handleSwipeUpMark(currentPhoto.id),
                   onSwipeLeft: viewerState.currentIndex > 0
                       ? () => ref
                           .read(deleteViewerProvider.notifier)
@@ -166,8 +167,12 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
                 child: _DeleteViewerAppBar(
                   currentIndex: currentIndex,
                   totalCount: photos.length,
+                  pendingDeleteCount: viewerState.pendingDeleteIds.length,
                   onBack: () => context.pop(),
                   onMenuPressed: () => _showMenuSheet(context),
+                  onDelete: viewerState.pendingDeleteIds.isNotEmpty
+                      ? () => _handleBatchDelete(context)
+                      : null,
                 ),
               ),
 
@@ -211,7 +216,7 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
                   right: 0,
                   child: _DeleteHintOverlay(onFadeOut: () {
                     if (mounted) setState(() => _showHint = false);
-                  }),
+                  },),
                 ),
             ],
           );
@@ -220,71 +225,68 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
     );
   }
 
-  /// 处理上滑删除：删除照片 + 显示撤销 toast（5s）。
+  /// 处理上滑标记：标记照片以待删除（不立即删除）。
   ///
-  /// M5-T9 防竞态：
-  /// - 将已删除照片存入撤销栈（关联当前 sessionId）
-  /// - 撤销时校验 sessionId，拒绝跨会话撤销
-  Future<void> _handleDelete(BuildContext context, String photoId) async {
-    final photos = ref.read(photosProvider).valueOrNull ?? [];
-    final deletedPhoto = photos.firstWhere(
-      (p) => p.id == photoId,
-      orElse: () => throw StateError('photo not found: $photoId'),
-    );
+  /// 多次上滑标记后，右上角删除按钮一次性批量删除。
+  void _handleSwipeUpMark(String photoId) {
+    final notifier = ref.read(deleteViewerProvider.notifier);
+    notifier.togglePendingDelete(photoId);
 
-    // M5-T9：先将照片推入撤销栈（关联当前 sessionId）
-    ref.read(deleteViewerProvider.notifier).pushToUndoStack(deletedPhoto);
-
-    // 删除照片（只删 App 记录，不影响系统相册）
-    await ref.read(photosProvider.notifier).delete(photoId);
-
-    if (!context.mounted) return;
-
-    // 通知 deleteViewer 更新 index（如果还有剩余照片）
-    if (photos.length > 1) {
-      ref.read(deleteViewerProvider.notifier).onDeleted(photos.length - 1);
-    } else {
-      // 没有照片了，退出
-      if (context.canPop()) context.pop();
-    }
-
-    // 显示撤销 toast（5s）
-    if (!context.mounted) return;
+    final isMarked = notifier.pendingDeleteIds.contains(photoId);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('已删除 (${ref.read(deleteViewerProvider).undoStack.length})'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: '撤销',
-          onPressed: () => _handleUndo(context),
-        ),
+        content: Text(isMarked ? '已标记待删除' : '已取消标记'),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
 
-  /// 处理撤销：从撤销栈弹出顶层条目，校验 sessionId 后恢复照片。
+  /// 处理批量删除：删除所有已标记的照片。
   ///
-  /// M5-T9 防竞态：sessionId 不匹配时拒绝撤销（防止跨会话操作）。
-  Future<void> _handleUndo(BuildContext context) async {
+  /// 显示确认对话框，用户确认后执行删除。
+  Future<void> _handleBatchDelete(BuildContext context) async {
     final notifier = ref.read(deleteViewerProvider.notifier);
-    final entry = notifier.popUndoStackIfValid();
+    final pendingIds = notifier.pendingDeleteIds.toList();
 
-    if (entry == null) {
-      // sessionId 不匹配或栈为空
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('撤销已失效'),
-            duration: Duration(seconds: 2),
+    if (pendingIds.isEmpty) return;
+
+    // 显示确认对话框
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除 ${pendingIds.length} 张照片吗？删除后可在回收站恢复。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
           ),
-        );
-      }
-      return;
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // 批量删除
+    for (final id in pendingIds) {
+      await ref.read(photosProvider.notifier).delete(id);
     }
 
-    // 撤销：重新保存该照片记录
-    await ref.read(photoRepositoryProvider).save(entry.photo);
-    await ref.read(photosProvider.notifier).refresh();
+    // 清除标记
+    notifier.clearPendingDelete();
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已删除 ${pendingIds.length} 张照片'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   void _showMenuSheet(BuildContext context) {
@@ -432,14 +434,18 @@ class _DeleteViewerAppBar extends StatelessWidget {
   const _DeleteViewerAppBar({
     required this.currentIndex,
     required this.totalCount,
+    required this.pendingDeleteCount,
     required this.onBack,
     required this.onMenuPressed,
+    required this.onDelete,
   });
 
   final int currentIndex;
   final int totalCount;
+  final int pendingDeleteCount;
   final VoidCallback onBack;
   final VoidCallback onMenuPressed;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -483,7 +489,33 @@ class _DeleteViewerAppBar extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
+              // 待删除数量
+              if (pendingDeleteCount > 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade700,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '$pendingDeleteCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               const Spacer(),
+              // 删除按钮（有待删除时显示）
+              if (onDelete != null)
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: onDelete,
+                  tooltip: '删除 ($pendingDeleteCount)',
+                ),
               IconButton(
                 icon: const Icon(Icons.more_vert, color: Colors.white),
                 onPressed: onMenuPressed,
@@ -533,7 +565,7 @@ class _NavigationArrow extends StatelessWidget {
 
 /// 带手势检测的照片查看器（M5-T7 新增）。
 ///
-/// - ↑ 滑（> 50px）→ [onSwipeUp]
+/// - ↑ 滑（> 50px）→ [onSwipeUp] 标记待删除
 /// - ← 滑（> 50px）→ [onSwipeLeft]
 /// - → 滑（> 50px）→ [onSwipeRight]
 ///
@@ -548,6 +580,7 @@ class _SwipePhotoViewer extends StatefulWidget {
     required this.onSwipeUp,
     required this.onSwipeLeft,
     required this.onSwipeRight,
+    required this.isMarkedDelete,
   });
 
   final String photoId;
@@ -556,6 +589,7 @@ class _SwipePhotoViewer extends StatefulWidget {
   final VoidCallback onSwipeUp;
   final VoidCallback? onSwipeLeft;
   final VoidCallback? onSwipeRight;
+  final bool isMarkedDelete;
 
   @override
   State<_SwipePhotoViewer> createState() => _SwipePhotoViewerState();
@@ -569,51 +603,74 @@ class _SwipePhotoViewerState extends State<_SwipePhotoViewer> {
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: (event) {
-        _startX = event.position.dx;
-        _startY = event.position.dy;
-        _isDragging = false;
-      },
-      onPointerMove: (event) {
-        // 一旦检测到明显的拖动，标记为已拖动（用于决定是否阻止 InteractiveViewer 的手势）
-        if (!_isDragging) {
-          final dx = (event.position.dx - _startX).abs();
-          final dy = (event.position.dy - _startY).abs();
-          if (dx > 10 || dy > 10) {
-            _isDragging = true;
-          }
-        }
-      },
-      onPointerUp: (event) {
-        if (!_isDragging) return;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (event) {
+            _startX = event.position.dx;
+            _startY = event.position.dy;
+            _isDragging = false;
+          },
+          onPointerMove: (event) {
+            // 一旦检测到明显的拖动，标记为已拖动（用于决定是否阻止 InteractiveViewer 的手势）
+            if (!_isDragging) {
+              final dx = (event.position.dx - _startX).abs();
+              final dy = (event.position.dy - _startY).abs();
+              if (dx > 10 || dy > 10) {
+                _isDragging = true;
+              }
+            }
+          },
+          onPointerUp: (event) {
+            if (!_isDragging) return;
 
-        final dx = event.position.dx - _startX;
-        final dy = event.position.dy - _startY;
+            final dx = event.position.dx - _startX;
+            final dy = event.position.dy - _startY;
 
-        // 方向判定：|dx| > |dy| → 水平；否则 → 垂直
-        if (dx.abs() > dy.abs()) {
-          // 水平滑动
-          if (dx > _threshold && widget.onSwipeRight != null) {
-            widget.onSwipeRight!();
-          } else if (dx < -_threshold && widget.onSwipeLeft != null) {
-            widget.onSwipeLeft!();
-          }
-        } else {
-          // 垂直滑动：仅响应上滑（删除）
-          if (dy < -_threshold) {
-            widget.onSwipeUp();
-          }
-        }
-        _isDragging = false;
-      },
-      child: _PhotoLoader(
-        key: ValueKey('loader_${widget.photoId}'),
-        photoId: widget.photoId,
-        aspectRatio: widget.aspectRatio,
-        fullImageLoader: widget.fullImageLoader,
-      ),
+            // 方向判定：|dx| > |dy| → 水平；否则 → 垂直
+            if (dx.abs() > dy.abs()) {
+              // 水平滑动
+              if (dx > _threshold && widget.onSwipeRight != null) {
+                widget.onSwipeRight!();
+              } else if (dx < -_threshold && widget.onSwipeLeft != null) {
+                widget.onSwipeLeft!();
+              }
+            } else {
+              // 垂直滑动：仅响应上滑（标记删除）
+              if (dy < -_threshold) {
+                widget.onSwipeUp();
+              }
+            }
+            _isDragging = false;
+          },
+          child: _PhotoLoader(
+            key: ValueKey('loader_${widget.photoId}'),
+            photoId: widget.photoId,
+            aspectRatio: widget.aspectRatio,
+            fullImageLoader: widget.fullImageLoader,
+          ),
+        ),
+        // 标记删除视觉指示
+        if (widget.isMarkedDelete)
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade700,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

@@ -297,11 +297,11 @@ void main() {
       await tester.pump();
     });
 
-    // M5-T7: Delete gesture shows undo SnackBar
-    // Note: The notifier-level tests (pushToUndoStack, popUndoStackIfValid,
-    // sessionId validation, LIFO order) are in delete_viewer_provider_test.dart.
-    // This screen-level test verifies the SnackBar appears after swipe-up delete.
-    testWidgets('swipe up on photo shows undo SnackBar with correct count (M5-T7)', (tester) async {
+    // M5-T7: Swipe up marks photo for pending delete (no immediate delete)
+    // Note: The notifier-level tests (togglePendingDelete, clearPendingDelete,
+    // pendingDeleteCount) are in delete_viewer_provider_test.dart.
+    // This screen-level test verifies the SnackBar appears after swipe-up mark.
+    testWidgets('swipe up on photo shows marked SnackBar (M5-T7)', (tester) async {
       final photos = TestPhotoFixtures.photos(count: 3);
       when(() => repo.delete(any<String>())).thenAnswer((_) async {});
       await tester.pumpWidget(buildSubject(photos: photos));
@@ -319,9 +319,8 @@ void main() {
       );
       await tester.pump();
 
-      // SnackBar should appear with "已删除" and undo action
-      expect(find.text('已删除 (1)'), findsOneWidget);
-      expect(find.text('撤销'), findsOneWidget);
+      // SnackBar should appear with "已标记待删除"
+      expect(find.text('已标记待删除'), findsOneWidget);
     });
   });
 }

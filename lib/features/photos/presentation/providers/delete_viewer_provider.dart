@@ -14,6 +14,7 @@ class DeleteViewerState {
     required this.isLoading,
     required this.sessionId,
     required this.undoStack,
+    required this.pendingDeleteIds,
   });
 
   final int currentIndex;
@@ -31,17 +32,24 @@ class DeleteViewerState {
   /// 队列顺序 = 删除顺序，撤销时按 LIFO（后进先出）弹出。
   final Queue<UndoEntry> undoStack;
 
+  /// 待删除的照片 ID 集合。
+  ///
+  /// 上滑标记照片时加入，批量删除时一起删除，清除。
+  final Set<String> pendingDeleteIds;
+
   DeleteViewerState copyWith({
     int? currentIndex,
     bool? isLoading,
     String? sessionId,
     Queue<UndoEntry>? undoStack,
+    Set<String>? pendingDeleteIds,
   }) {
     return DeleteViewerState(
       currentIndex: currentIndex ?? this.currentIndex,
       isLoading: isLoading ?? this.isLoading,
       sessionId: sessionId ?? this.sessionId,
       undoStack: undoStack ?? this.undoStack,
+      pendingDeleteIds: pendingDeleteIds ?? this.pendingDeleteIds,
     );
   }
 }
@@ -74,6 +82,7 @@ class DeleteViewerNotifier extends Notifier<DeleteViewerState> {
       isLoading: false,
       sessionId: _generateSessionId(),
       undoStack: Queue<UndoEntry>(),
+      pendingDeleteIds: {},
     );
   }
 
@@ -91,6 +100,7 @@ class DeleteViewerNotifier extends Notifier<DeleteViewerState> {
       isLoading: false,
       sessionId: _generateSessionId(),
       undoStack: Queue<UndoEntry>(),
+      pendingDeleteIds: {},
     );
   }
 
@@ -153,6 +163,30 @@ class DeleteViewerNotifier extends Notifier<DeleteViewerState> {
 
   /// 获取当前会话的撤销栈大小（用于 UI 显示等）。
   int get undoStackSize => state.undoStack.length;
+
+  /// 标记/取消标记照片以待删除。
+  ///
+  /// 如果照片已在待删除集合中，则移除；否则添加。
+  void togglePendingDelete(String photoId) {
+    final newSet = Set<String>.from(state.pendingDeleteIds);
+    if (newSet.contains(photoId)) {
+      newSet.remove(photoId);
+    } else {
+      newSet.add(photoId);
+    }
+    state = state.copyWith(pendingDeleteIds: newSet);
+  }
+
+  /// 清除所有待删除标记。
+  void clearPendingDelete() {
+    state = state.copyWith(pendingDeleteIds: {});
+  }
+
+  /// 获取待删除照片 ID 集合。
+  Set<String> get pendingDeleteIds => state.pendingDeleteIds;
+
+  /// 获取待删除照片数量。
+  int get pendingDeleteCount => state.pendingDeleteIds.length;
 }
 
 /// 全局删除查看器状态入口。
