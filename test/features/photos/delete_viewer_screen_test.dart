@@ -25,12 +25,31 @@ import '../../test_utils/test_photo_fixtures.dart';
 /// - Right arrow visible when more than 1 photo
 /// - Menu opens bottom sheet with options
 /// - Counter updates when navigating
+/// - Swipe up triggers delete and shows undo SnackBar (M5-T7)
+/// - Tapping undo restores the deleted photo (M5-T9)
 class _StubPhotosNotifier extends PhotosNotifier {
-  _StubPhotosNotifier(this._data);
+  _StubPhotosNotifier([List<PhotoModel>? initialData]) : _data = initialData ?? [];
+
   final List<PhotoModel> _data;
+  List<PhotoModel> get currentData => List.unmodifiable(_data);
 
   @override
-  Future<List<PhotoModel>> build() async => _data;
+  Future<List<PhotoModel>> build() async {
+    // Return a copy to prevent external mutation
+    return List<PhotoModel>.from(_data);
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    _data.removeWhere((p) => p.id == id);
+    // Trigger state update with copy
+    state = AsyncData(List<PhotoModel>.from(_data));
+  }
+
+  @override
+  Future<void> refresh() async {
+    state = AsyncData(List<PhotoModel>.from(_data));
+  }
 }
 
 class _MockRepo extends Mock implements PhotoRepository {}
@@ -40,6 +59,19 @@ class _MockBox extends Mock implements Box<dynamic> {}
 void main() {
   late _MockRepo repo;
   late _MockBox box;
+
+  setUpAll(() {
+    // Register fallback value for PhotoModel (used by any<PhotoModel>() in tests)
+    registerFallbackValue(PhotoModel(
+      id: 'fallback',
+      path: '/fallback',
+      width: 1,
+      height: 1,
+      takenAt: DateTime.now(),
+      tags: const [],
+      starRating: 0,
+    ));
+  });
 
   setUp(() {
     repo = _MockRepo();
@@ -265,5 +297,31 @@ void main() {
       await tester.pump();
     });
 
+    // M5-T7: Delete gesture shows undo SnackBar
+    // Note: The notifier-level tests (pushToUndoStack, popUndoStackIfValid,
+    // sessionId validation, LIFO order) are in delete_viewer_provider_test.dart.
+    // This screen-level test verifies the SnackBar appears after swipe-up delete.
+    testWidgets('swipe up on photo shows undo SnackBar with correct count (M5-T7)', (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 3);
+      when(() => repo.delete(any<String>())).thenAnswer((_) async {});
+      await tester.pumpWidget(buildSubject(photos: photos));
+      // Advance time past the hint overlay timers (3s)
+      await tester.pump(const Duration(seconds: 4));
+
+      // Should start at "1 / 3"
+      expect(find.text('1 / 3'), findsOneWidget);
+
+      // Swipe up using GestureDetector (same approach as existing horizontal swipe tests)
+      await tester.fling(
+        find.byType(GestureDetector).first,
+        const Offset(0, -100), // negative dy = swipe up
+        500,
+      );
+      await tester.pump();
+
+      // SnackBar should appear with "已删除" and undo action
+      expect(find.text('已删除 (1)'), findsOneWidget);
+      expect(find.text('撤销'), findsOneWidget);
+    });
   });
 }

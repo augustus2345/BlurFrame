@@ -670,6 +670,41 @@ void main() {
       verify(() => repo.updateStarRating('photo_001', 5)).called(1);
       verify(() => repo.updateStarRating('photo_002', 5)).called(1);
     });
+
+    testWidgets('批量加星选择清除(0星)调用 updateStarRating(0) (M5-T10)', (tester) async {
+      final populatedPhotos = TestPhotoFixtures.photos(count: 2);
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => populatedPhotos);
+      when(() => repo.updateStarRating(any(), any())).thenAnswer((_) async {});
+
+      await tester.pumpWidget(
+        buildGallery(
+          initialState: PermissionState.authorized,
+          photosLoad: () async => populatedPhotos,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按进入多选模式
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+      expect(find.text('1 项已选中'), findsOneWidget);
+
+      // 点击星级按钮
+      await tester.tap(find.byKey(const Key('multi_select_star')));
+      await tester.pumpAndSettle();
+
+      // 应该看到"批量设置星级"和"清除"按钮（0星）
+      expect(find.text('批量设置星级'), findsOneWidget);
+      expect(find.text('清除'), findsOneWidget);
+
+      // 点击"清除"（0星）
+      await tester.tap(find.text('清除'));
+      await tester.pumpAndSettle();
+
+      // updateStarRating 应该被调用，参数为 0
+      verify(() => repo.updateStarRating('photo_000', 0)).called(1);
+    });
   });
 }
 

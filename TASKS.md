@@ -707,9 +707,14 @@
   - 测试 `delete_viewer_provider_test.dart`：新增 8 个用例（copyWith × 2 / initialize 生成新 sessionId / initialize 清空栈 / pushToUndoStack / popUndoStackIfValid 匹配+不匹配+空栈 / LIFO 顺序）
   - **验证**: `flutter analyze` → 1 info pre-existing trailing comma（非本次引入）| `flutter test` → **546/546 通过**
   - **完成时间**: 2026-06-28
-- [ ] **M5-T10** 测试：删除 tab 状态机（4 条路径） / 多选 Provider / 批量加星
-
-**完成时间**: _待定_
+- [x] **M5-T10** 测试：删除 tab 状态机（4 条路径） / 多选 Provider / 批量加星
+  - 删除 tab 状态机（4 条路径）：
+    - 核心逻辑已在 `delete_viewer_provider_test.dart`（M5-T9）充分测试：initialize / goToPrevious / goToNext / onDeleted / setLoading / copyWith / sessionId 生成和失效 / undoStack push/pop/LIFO/sessionId 校验，共 31 个用例
+    - 屏幕级测试：swipe up 删除显示撤销 SnackBar（M5-T7）
+  - 多选 Provider：9 个用例完整覆盖（M5-T7）
+  - 批量加星：新增 0 星清除测试用例（M5-T10）
+  - **验证**: `flutter analyze` → 0 errors（138 info 非阻塞）| `flutter test` → **548/548 通过**
+  - **完成时间**: 2026-06-28
 
 ---
 
