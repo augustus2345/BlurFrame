@@ -14,7 +14,7 @@ class AppShell extends StatelessWidget {
     _TabSpec(AppRoute.gallery, Icons.photo_library_outlined, Icons.photo_library_rounded, '相册'),
     _TabSpec(AppRoute.albums, Icons.collections_bookmark_outlined, Icons.collections_bookmark_rounded, '影集'),
     _TabSpec(AppRoute.frames, Icons.crop_square_outlined, Icons.crop_square_rounded, '相框'),
-    _TabSpec(AppRoute.search, Icons.search_outlined, Icons.search_rounded, '搜索'),
+    _TabSpec(AppRoute.deleteViewer, Icons.delete_outline, Icons.delete, '删除'),
     _TabSpec(AppRoute.settings, Icons.tune_outlined, Icons.tune_rounded, '设置'),
   ];
 

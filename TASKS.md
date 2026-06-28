@@ -665,7 +665,20 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **512/512 通过**
   - **预估**: 10 min
   - **完成时间**: 2026-06-28
-- [ ] **M5-T6** **删除 tab**（独立一级 tab，承载原"清理模式"）：单图全屏（黑底）+ 顶栏 `‹` 返回 / `N / M` 位置计数 / 右上 `⋯` 操作
+- [x] **M5-T6** **删除 tab**（独立一级 tab，承载原"清理模式"）：单图全屏（黑底）+ 顶栏 `‹` 返回 / `N / M` 位置计数 / 右上 `⋯` 操作
+  - 新增 2 个 lib 文件 + 2 个 test 文件：
+    - `lib/features/photos/presentation/providers/delete_viewer_provider.dart` — `DeleteViewerState` + `DeleteViewerNotifier`（currentIndex / isLoading / initialize / goToPrevious / goToNext / onDeleted / setLoading）
+    - `lib/features/photos/presentation/screens/delete_viewer_screen.dart` — 删除 tab 主屏：黑底全屏 + `_PhotoLoader` FutureBuilder 异步加载字节（loading 占位图标 / 错误占位图标 / PhotoViewer）+ `_DeleteViewerAppBar`（返回/计数/菜单）+ 左右箭头导航
+  - 修改：
+    - `lib/core/router/app_router.dart` — 注册 `/delete-viewer` 路由（`AppRoute.deleteViewer`）+ import `DeleteViewerScreen`
+    - `lib/core/widgets/app_shell.dart` — 替换搜索 tab 为删除 tab：`_TabSpec(AppRoute.deleteViewer, Icons.delete_outline, Icons.delete, '删除')`（对齐 PRD v0.2 五 tab 导航：相册/影集/相框/删除/设置）
+    - `lib/features/photos/presentation/screens/photo_gallery_screen.dart` — 清理按钮改为 `context.go(AppRoute.deleteViewer)`
+  - 测试（22 个新增）：
+    - `test/features/photos/delete_viewer_provider_test.dart` — **14 个用例**：build 初始态 / initialize / goToPrevious 递减 / 越界守卫 / goToNext 递增 / 越界守卫 / onDeleted 钳制 / 越界守卫 / onDeleted 空列表 / setLoading / copyWith 全字段 / copyWith 部分字段
+    - `test/features/photos/delete_viewer_screen_test.dart` — **8 个用例**：empty 态 / N/M 计数 / 返回按钮 / 菜单按钮 / 多照片右箭头 / 右箭头递增 / 左箭头递减 / 菜单底部弹窗
+  - **验证**: `flutter analyze` → **0 errors on M5-T6 files**（pre-existing batch_apply_template_sheet.dart 错误非本次引入）| `flutter test` → **534/534 通过**
+  - **预估**: 40 min
+  - **完成时间**: 2026-06-28
 - [ ] **M5-T7** 删除 tab **手势**：↑ 滑 → 删除 + 撤销 toast / ← 滑 → 上一张 / → 滑 → 下一张
 - [ ] **M5-T8** 删除 tab 屏幕内提示 hint（首次显示 3s 后渐隐）+ 顶栏 `⋯` 菜单（退出/批量/过滤）
 - [ ] **M5-T9** 防竞态：sessionId 校验 / 撤销栈 `Queue<({assetId, sessionId})>`

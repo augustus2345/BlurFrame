@@ -7,6 +7,7 @@ import '../../features/albums/presentation/screens/album_detail_screen.dart';
 import '../../features/albums/presentation/screens/album_list_screen.dart';
 import '../../features/frames/presentation/screens/frame_template_editor_screen.dart';
 import '../../features/frames/presentation/screens/frame_template_list_screen.dart';
+import '../../features/photos/presentation/screens/delete_viewer_screen.dart';
 import '../../features/photos/presentation/screens/photo_detail_screen.dart';
 import '../../features/photos/presentation/screens/photo_gallery_screen.dart';
 import '../../features/search/presentation/screens/search_screen.dart';
@@ -30,6 +31,7 @@ abstract class AppRoute {
   static const albumCreate = '/albums/create';
   static const tagDetail = '/tags/:id';
   static const cleanup = '/cleanup';
+  static const deleteViewer = '/delete-viewer';
 }
 
 /// Single source of truth for the router — exposed as a Riverpod provider
@@ -137,6 +139,12 @@ GoRouter _buildRouter() {
             path: AppRoute.search,
             pageBuilder: (_, __) => const NoTransitionPage(
               child: SearchScreen(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoute.deleteViewer,
+            pageBuilder: (_, __) => const NoTransitionPage(
+              child: DeleteViewerScreen(),
             ),
           ),
           GoRoute(

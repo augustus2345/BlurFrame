@@ -1,0 +1,181 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:photo_beauty/features/photos/data/models/photo_model.dart';
+import 'package:photo_beauty/features/photos/data/repositories/photo_repository.dart';
+import 'package:photo_beauty/features/photos/presentation/providers/full_image_loader_provider.dart';
+import 'package:photo_beauty/features/photos/presentation/providers/photos_provider.dart';
+import 'package:photo_beauty/features/photos/presentation/screens/delete_viewer_screen.dart';
+
+import '../../test_utils/test_photo_fixtures.dart';
+
+/// Tests for [DeleteViewerScreen] — the delete tab main screen.
+///
+/// Test scope:
+/// - Loading state: shows placeholder
+/// - Empty state: shows "没有照片" message
+/// - Success state: renders app bar + N/M counter + back button
+/// - Right arrow visible when more than 1 photo
+/// - Menu opens bottom sheet with options
+/// - Counter updates when navigating
+class _StubPhotosNotifier extends PhotosNotifier {
+  _StubPhotosNotifier(this._data);
+  final List<PhotoModel> _data;
+
+  @override
+  Future<List<PhotoModel>> build() async => _data;
+}
+
+class _MockRepo extends Mock implements PhotoRepository {}
+
+void main() {
+  late _MockRepo repo;
+
+  setUp(() {
+    repo = _MockRepo();
+  });
+
+  Widget buildSubject({
+    required List<PhotoModel> photos,
+    Uint8List? fullImage,
+    GoRouter? router,
+  }) {
+    return ProviderScope(
+      overrides: <Override>[
+        photosProvider.overrideWith(() => _StubPhotosNotifier(photos)),
+        photoRepositoryProvider.overrideWithValue(repo),
+        fullImageLoaderProvider.overrideWithValue(
+          (String id) async => fullImage,
+        ),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router ??
+            GoRouter(
+              initialLocation: '/delete-viewer',
+              routes: [
+                GoRoute(
+                  path: '/delete-viewer',
+                  builder: (_, __) => const DeleteViewerScreen(),
+                ),
+              ],
+            ),
+      ),
+    );
+  }
+
+  group('DeleteViewerScreen', () {
+    testWidgets('empty: shows "没有照片" message', (tester) async {
+      await tester.pumpWidget(
+        buildSubject(photos: const []),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('没有照片'), findsOneWidget);
+    });
+
+    testWidgets('success: renders app bar with N/M counter',
+        (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 5);
+      await tester.pumpWidget(
+        buildSubject(photos: photos),
+      );
+      await tester.pumpAndSettle();
+
+      // N/M counter should show "1 / 5" (1-indexed)
+      expect(find.text('1 / 5'), findsOneWidget);
+    });
+
+    testWidgets('success: renders back button', (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 3);
+
+      final router = GoRouter(
+        initialLocation: '/delete-viewer',
+        routes: [
+          GoRoute(
+            path: '/delete-viewer',
+            builder: (_, __) => const DeleteViewerScreen(),
+          ),
+          GoRoute(
+            path: '/gallery',
+            builder: (_, __) => const Scaffold(body: Text('Gallery')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        buildSubject(photos: photos, router: router),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+    });
+
+    testWidgets('success: renders menu button', (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 3);
+      await tester.pumpWidget(buildSubject(photos: photos));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+    });
+
+    testWidgets('success: shows right arrow when more than 1 photo',
+        (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 3);
+      await tester.pumpWidget(buildSubject(photos: photos));
+      await tester.pumpAndSettle();
+
+      // Right arrow should be visible
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    });
+
+    testWidgets('tapping right arrow increments counter', (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 3);
+      await tester.pumpWidget(buildSubject(photos: photos));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 / 3'), findsOneWidget);
+
+      // Tap right arrow
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 / 3'), findsOneWidget);
+    });
+
+    testWidgets('tapping left arrow at index>0 decrements counter',
+        (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 3);
+      await tester.pumpWidget(buildSubject(photos: photos));
+      await tester.pumpAndSettle();
+
+      // Go to second photo first
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+      expect(find.text('2 / 3'), findsOneWidget);
+
+      // Tap left arrow
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 / 3'), findsOneWidget);
+    });
+
+    testWidgets('menu button opens bottom sheet', (tester) async {
+      final photos = TestPhotoFixtures.photos(count: 2);
+      await tester.pumpWidget(buildSubject(photos: photos));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      expect(find.text('退出清理模式'), findsOneWidget);
+      expect(find.text('进入多选'), findsOneWidget);
+      expect(find.text('切换过滤'), findsOneWidget);
+    });
+
+  });
+}

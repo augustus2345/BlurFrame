@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../frames/data/repositories/frame_repository.dart';
 import '../../data/models/photo_model.dart';
@@ -102,9 +103,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                 IconButton(
                   icon: const Icon(Icons.cleaning_services_outlined),
                   tooltip: '清理',
-                  onPressed: () {
-                    // TODO(M5): navigate to /cleanup — single-photo cleanup mode.
-                  },
+                  onPressed: () => context.go(AppRoute.deleteViewer),
                 ),
               ],
             ),
