@@ -643,7 +643,14 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **506/506 通过**
   - **预估**: 20 min
   - **完成时间**: 2026-06-27
-- [ ] **M5-T3** **批量加星**（新加，依赖 M4-T5 的 `starRating` 字段）
+- [x] **M5-T3** **批量加星**（新加，依赖 M4-T5 的 `starRating` 字段）
+  - 多选 → 选星级（0–5）→ 调用 `PhotoRepository.updateStarRating` 写入每张照片 → 退出多选 + 刷新
+  - `showBatchStarRatingSheet` 已有（M4-T10），无需新增 UI 组件
+  - `MultiSelectAppBar.onStar` 从 snackbar 占位升级为真实回调 `_handleBatchStar`
+  - 新增测试 `photo_gallery_screen_test.dart`：2 个用例（单张加星 / 全选加星）
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **508/508 通过**（M5-T3 2 新）
+  - **预估**: 20 min
+  - **完成时间**: 2026-06-28
 - [ ] **M5-T4** 批量加入影集
 - [ ] **M5-T5** 批量删除（二次确认）
 - [ ] **M5-T6** **删除 tab**（独立一级 tab，承载原"清理模式"）：单图全屏（黑底）+ 顶栏 `‹` 返回 / `N / M` 位置计数 / 右上 `⋯` 操作

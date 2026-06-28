@@ -18,6 +18,7 @@ import '../providers/photos_provider.dart';
 import '../widgets/apply_template_sheet.dart';
 import '../widgets/multi_select_app_bar.dart';
 import '../widgets/photo_grid_item.dart';
+import '../widgets/star_rating_picker_sheet.dart';
 import '../../../tags/presentation/widgets/tag_picker_sheet.dart';
 import 'permission_request_screen.dart';
 
@@ -84,6 +85,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
               },
               onDelete: () => _showDeleteConfirmation(context, ref),
               onTags: () => _handleBatchTags(context, ref),
+              onStar: () => _handleBatchStar(context, ref),
               onFrame: () => _handleBatchFrame(context, ref),
             )
           : AppBar(
@@ -168,6 +170,28 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
         final newTags = selectedTagIds.toList();
         for (final id in selectedIds) {
           await photoRepo.updateTags(id, newTags);
+        }
+        if (!context.mounted) return;
+        ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
+        unawaited(ref.read(photosProvider.notifier).refresh());
+      },
+    );
+  }
+
+  /// 批量加星。
+  ///
+  /// 弹出 [showBatchStarRatingSheet]，用户选择星级后，
+  /// 将星级写入每张选中照片，然后退出多选模式并刷新列表。
+  Future<void> _handleBatchStar(BuildContext context, WidgetRef ref) async {
+    final selectedIds = ref.read(multiSelectProvider).selectedIds;
+    if (selectedIds.isEmpty) return;
+
+    await showBatchStarRatingSheet(
+      context: context,
+      onConfirm: (starRating) async {
+        final photoRepo = ref.read(photoRepositoryProvider);
+        for (final id in selectedIds) {
+          await photoRepo.updateStarRating(id, starRating);
         }
         if (!context.mounted) return;
         ref.read(multiSelectProvider.notifier).exitMultiSelectMode();

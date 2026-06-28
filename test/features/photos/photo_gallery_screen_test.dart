@@ -592,6 +592,84 @@ void main() {
       // updateTags 应该被调用
       verify(() => repo.updateTags('photo_000', any())).called(1);
     });
+
+    testWidgets('批量加星按钮弹出星级选择 Sheet 并更新星级 (M5-T3)', (tester) async {
+      final populatedPhotos = TestPhotoFixtures.photos(count: 3);
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => populatedPhotos);
+      when(() => repo.updateStarRating(any(), any())).thenAnswer((_) async {});
+
+      await tester.pumpWidget(
+        buildGallery(
+          initialState: PermissionState.authorized,
+          photosLoad: () async => populatedPhotos,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按进入多选模式并选中一项
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+      expect(find.text('1 项已选中'), findsOneWidget);
+
+      // 点击星级按钮
+      await tester.tap(find.byKey(const Key('multi_select_star')));
+      await tester.pumpAndSettle();
+
+      // showBatchStarRatingSheet 应该出现
+      expect(find.text('批量设置星级'), findsOneWidget);
+      expect(find.text('将为所有选中照片设置相同星级'), findsOneWidget);
+      // 6 个星级按钮（0-5星）
+      for (int i = 0; i <= 5; i++) {
+        expect(find.text(i == 0 ? '清除' : '$i 星'), findsOneWidget);
+      }
+
+      // 点击"3 星"按钮
+      await tester.tap(find.text('3 星'));
+      await tester.pumpAndSettle();
+
+      // updateStarRating 应该被调用，参数为 3
+      verify(() => repo.updateStarRating('photo_000', 3)).called(1);
+      // 退出多选模式
+      expect(find.text('相册'), findsOneWidget);
+    });
+
+    testWidgets('批量加星全选后设置 5 星，所有照片都更新 (M5-T3)', (tester) async {
+      final populatedPhotos = TestPhotoFixtures.photos(count: 3);
+      when(() => repo.loadAllFromSystem())
+          .thenAnswer((_) async => populatedPhotos);
+      when(() => repo.updateStarRating(any(), any())).thenAnswer((_) async {});
+
+      await tester.pumpWidget(
+        buildGallery(
+          initialState: PermissionState.authorized,
+          photosLoad: () async => populatedPhotos,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按进入多选模式
+      await tester.longPress(find.byKey(const Key('photo_grid_item_photo_000')));
+      await tester.pump();
+
+      // 全选
+      await tester.tap(find.text('全选'));
+      await tester.pump();
+      expect(find.text('3 项已选中'), findsOneWidget);
+
+      // 点击星级按钮
+      await tester.tap(find.byKey(const Key('multi_select_star')));
+      await tester.pumpAndSettle();
+
+      // 点击"5 星"
+      await tester.tap(find.text('5 星'));
+      await tester.pumpAndSettle();
+
+      // 3 张照片都应该被更新
+      verify(() => repo.updateStarRating('photo_000', 5)).called(1);
+      verify(() => repo.updateStarRating('photo_001', 5)).called(1);
+      verify(() => repo.updateStarRating('photo_002', 5)).called(1);
+    });
   });
 }
 
