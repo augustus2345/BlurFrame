@@ -19,6 +19,8 @@ import '../widgets/apply_template_sheet.dart';
 import '../widgets/multi_select_app_bar.dart';
 import '../widgets/photo_grid_item.dart';
 import '../widgets/star_rating_picker_sheet.dart';
+import '../../../albums/presentation/widgets/album_picker_sheet.dart';
+import '../../../albums/presentation/providers/album_list_provider.dart';
 import '../../../tags/presentation/widgets/tag_picker_sheet.dart';
 import 'permission_request_screen.dart';
 
@@ -86,6 +88,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
               onDelete: () => _showDeleteConfirmation(context, ref),
               onTags: () => _handleBatchTags(context, ref),
               onStar: () => _handleBatchStar(context, ref),
+              onAlbum: () => _handleBatchAlbum(context, ref),
               onFrame: () => _handleBatchFrame(context, ref),
             )
           : AppBar(
@@ -196,6 +199,29 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
         if (!context.mounted) return;
         ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
         unawaited(ref.read(photosProvider.notifier).refresh());
+      },
+    );
+  }
+
+  /// 批量加入影集。
+  ///
+  /// 弹出 [showAlbumPickerSheet]，用户选择影集后，
+  /// 将选中照片添加到影集，然后退出多选模式并刷新列表。
+  Future<void> _handleBatchAlbum(BuildContext context, WidgetRef ref) async {
+    final selectedIds = ref.read(multiSelectProvider).selectedIds;
+    if (selectedIds.isEmpty) return;
+
+    await showAlbumPickerSheet(
+      context: context,
+      selectedPhotoIds: selectedIds,
+      onConfirm: (albumId) async {
+        final albumRepo = ref.read(albumRepositoryProvider);
+        await albumRepo.addPhotos(albumId, selectedIds.toList());
+        if (!context.mounted) return;
+        ref.read(multiSelectProvider.notifier).exitMultiSelectMode();
+        unawaited(ref.read(photosProvider.notifier).refresh());
+        // 刷新影集列表（封面可能变化）
+        unawaited(ref.read(albumListProvider.notifier).refresh());
       },
     );
   }

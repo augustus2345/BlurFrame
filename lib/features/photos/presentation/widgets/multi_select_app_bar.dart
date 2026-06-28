@@ -14,7 +14,7 @@ import 'package:flutter/material.dart';
 /// [onDelete] 批量删除
 /// [onTags] 批量打标签
 /// [onStar] 批量加星
-/// [onAlbum] 批量加影集（暂无功能，show snackbar 占位）
+/// [onAlbum] 批量加影集
 /// [onFrame] 批量套模版（暂无功能，show snackbar 占位）
 class MultiSelectAppBar extends StatelessWidget implements PreferredSizeWidget {
   const MultiSelectAppBar({

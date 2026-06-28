@@ -651,7 +651,14 @@
   - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **508/508 通过**（M5-T3 2 新）
   - **预估**: 20 min
   - **完成时间**: 2026-06-28
-- [ ] **M5-T4** 批量加入影集
+- [x] **M5-T4** 批量加入影集
+  - 多选 → 选影集 → `AlbumRepository.addPhotos` → 退出多选 + 刷新
+  - 新增 `album_picker_sheet.dart`：影集列表 + 新建影集并添加
+  - `MultiSelectAppBar.onAlbum` 从 snackbar 占位升级为真实回调 `_handleBatchAlbum`
+  - 新增测试 `album_picker_sheet_test.dart`：4 个用例（标题/列表/点击/新建）
+  - **验证**: `flutter analyze` → **No issues found** | `flutter test` → **512/512 通过**（M5-T4 4 新）
+  - **预估**: 20 min
+  - **完成时间**: 2026-06-28
 - [ ] **M5-T5** 批量删除（二次确认）
 - [ ] **M5-T6** **删除 tab**（独立一级 tab，承载原"清理模式"）：单图全屏（黑底）+ 顶栏 `‹` 返回 / `N / M` 位置计数 / 右上 `⋯` 操作
 - [ ] **M5-T7** 删除 tab **手势**：↑ 滑 → 删除 + 撤销 toast / ← 滑 → 上一张 / → 滑 → 下一张
