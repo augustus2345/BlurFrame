@@ -122,7 +122,20 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('确认删除'),
-        content: Text('确定要删除选中的 ${selectedIds.length} 张照片吗？'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('确定要删除选中的 ${selectedIds.length} 张照片吗？'),
+            const SizedBox(height: 12),
+            Text(
+              '注意：仅删除 App 内记录，系统相册中的原图不受影响。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
