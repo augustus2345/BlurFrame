@@ -28,6 +28,15 @@ class BatchApplyTemplateSheet extends ConsumerWidget {
     );
   }
 
+  Widget _buildStateContent(BatchApplyTemplateState state) {
+    if (state is BatchApplyTemplateProcessing) {
+      return _ProcessingContent(state: state);
+    } else if (state is BatchApplyTemplateDone) {
+      return _DoneContent(state: state);
+    }
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(batchApplyTemplateProvider);
@@ -50,14 +59,7 @@ class BatchApplyTemplateSheet extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // 根据状态显示不同内容
-          switch (state) {
-            case BatchApplyTemplateInitial() => const SizedBox.shrink(),
-
-            case BatchApplyTemplateProcessing() =>
-              _ProcessingContent(state: state),
-
-            case BatchApplyTemplateDone() => _DoneContent(state: state),
-          },
+          _buildStateContent(state),
         ],
       ),
     );
@@ -97,13 +99,13 @@ class _ProcessingContent extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (state.successCount > 0) ...[
-              Icon(Icons.check_circle, color: Colors.green, size: 16),
+              const Icon(Icons.check_circle, color: Colors.green, size: 16),
               const SizedBox(width: 4),
               Text('${state.successCount}'),
               const SizedBox(width: 16),
             ],
             if (state.failureCount > 0) ...[
-              Icon(Icons.error, color: Colors.red, size: 16),
+              const Icon(Icons.error, color: Colors.red, size: 16),
               const SizedBox(width: 4),
               Text('${state.failureCount}'),
             ],
@@ -189,9 +191,9 @@ class _ResultChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

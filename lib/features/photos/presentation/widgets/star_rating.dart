@@ -28,9 +28,9 @@ class StarRating extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.9),
+        color: theme.colorScheme.surface.withValues(alpha: 0.9),
         border: Border(
-          top: BorderSide(color: theme.dividerColor.withOpacity(0.5)),
+          top: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5)),
         ),
       ),
       child: Column(
@@ -70,7 +70,7 @@ class StarRating extends StatelessWidget {
                     size: 28,
                     color: isFilled
                         ? Colors.amber
-                        : theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                   ),
                 ),
               );

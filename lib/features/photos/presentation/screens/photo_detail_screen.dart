@@ -332,7 +332,7 @@ class _StarPickerSheetState extends State<_StarPickerSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -362,7 +362,7 @@ class _StarPickerSheetState extends State<_StarPickerSheet> {
                     size: 40,
                     color: isFilled
                         ? Colors.amber
-                        : theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                   ),
                 ),
               );

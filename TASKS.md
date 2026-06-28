@@ -726,7 +726,13 @@
   - **验证**: `flutter analyze` → 0 errors（138 pre-existing info/warnings 非阻塞）| `flutter test` → **548/548** 通过
   - **预估**: 30 min
   - **完成时间**: 2026-06-28
-- [ ] **M6-T2** 暗色模式过一遍
+- [x] **M6-T2** 暗色模式过一遍
+  - 修复 `batch_apply_template_sheet.dart` 的 switch expression 语法错误（Dart 3.12 不支持 `case X() =>` 语法，改为 if-else 类型判断）
+  - 将所有 `withOpacity` 替换为 `withValues(alpha:)` 消除 deprecated warning（共修复 15 处，涉级 8 个文件）
+  - 修复 `prefer_const_constructors` 警告（2 处 Icon 声明）
+  - 验证: `flutter analyze` → 0 errors（11 pre-existing warnings 非阻塞）| `flutter test` → **548/548** 通过
+  - **预估**: 30 min
+  - **完成时间**: 2026-06-28
 - [ ] **M6-T3** 性能：1000 张分页 + 缩略图 LRU
 - [ ] **M6-T4** Integration test：开 App → 授权 → 网格 → 详情 → 套模板 → 导出
 - [ ] **M6-T5** 错误处理：渲染失败重试 / 权限拒绝去设置

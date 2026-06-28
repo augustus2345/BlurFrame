@@ -180,8 +180,8 @@ class _Badge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: isBuiltIn
-            ? Colors.black.withOpacity(0.55)
-            : theme.colorScheme.primary.withOpacity(0.85),
+            ? Colors.black.withValues(alpha: 0.55)
+            : theme.colorScheme.primary.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

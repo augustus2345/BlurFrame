@@ -60,7 +60,7 @@ class _FramePreviewPainter extends CustomPainter {
 
     // 一条对角"光斑"提示这是张图（不是纯色块）。
     final highlight = Paint()
-      ..color = Colors.white.withOpacity(0.18)
+      ..color = Colors.white.withValues(alpha: 0.18)
       ..style = PaintingStyle.fill;
     final path = Path()
       ..moveTo(size.width * 0.2, 0)
@@ -94,7 +94,7 @@ class _FramePreviewPainter extends CustomPainter {
       final intensity = layer.intensity.clamp(1.0, 16.0);
       final ratio = (intensity / 16.0).clamp(0.0, 1.0);
       final edgeThickness = size.shortestSide * 0.18 * ratio;
-      final edgeColor = Colors.black.withOpacity(0.35 * ratio);
+      final edgeColor = Colors.black.withValues(alpha: 0.35 * ratio);
 
       final topRect = Rect.fromLTWH(
         0,
@@ -125,7 +125,7 @@ class _FramePreviewPainter extends CustomPainter {
       // 全图模糊：整张盖一层低透明度灰雾。
       canvas.drawRect(
         Offset.zero & size,
-        Paint()..color = Colors.white.withOpacity(0.35),
+        Paint()..color = Colors.white.withValues(alpha: 0.35),
       );
     }
   }
