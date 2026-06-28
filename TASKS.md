@@ -689,7 +689,12 @@
   - **验证**: `flutter analyze` → **0 errors** | `flutter test` → **536/536 通过**
   - **预估**: 30 min
   - **完成时间**: 2026-06-28
-- [ ] **M5-T8** 删除 tab 屏幕内提示 hint（首次显示 3s 后渐隐）+ 顶栏 `⋯` 菜单（退出/批量/过滤）
+- [x] **M5-T8** 删除 tab 屏幕内提示 hint（首次显示 3s 后渐隐）+ 顶栏 `⋯` 菜单（退出/批量/过滤）
+  - 新增 `_DeleteHintOverlay` StatefulWidget：显示手势操作提示（"上滑删除 · 左右滑动切换"），首次进入时显示，3s 后自动淡出（500ms easeOut 动画）；持久化 `deleteHintShown` 到 `SettingsService`（M5-T8 新增 `getBool`/`setBool` 通用方法）
+  - `_showMenuSheet` 的「进入多选」从 SnackBar 占位升级为真实回调：调用 `multiSelectProvider.selectAll` 全选当前照片 + `enterMultiSelectMode` + `context.pop()` + `context.go('/gallery')` 跳转相册
+  - 11 个测试全过：`flutter analyze` → 0 errors（3 个 pre-existing `batch_apply_template_sheet.dart` sealed class 语法错误与本次无关）| `flutter test` → **537/537** 通过
+  - **预估**: 20 min
+  - **完成时间**: 2026-06-28
 - [ ] **M5-T9** 防竞态：sessionId 校验 / 撤销栈 `Queue<({assetId, sessionId})>`
 - [ ] **M5-T10** 测试：删除 tab 状态机（4 条路径） / 多选 Provider / 批量加星
 

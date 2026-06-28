@@ -54,4 +54,16 @@ class SettingsService {
   Future<void> markFirstLaunchDone() {
     return _box.put(AppConstants.firstLaunchKey, false);
   }
+
+  /// 读取布尔值。
+  bool getBool(String key, {bool defaultValue = false}) {
+    final value = _box.get(key);
+    if (value is bool) return value;
+    return defaultValue;
+  }
+
+  /// 写入布尔值。
+  Future<void> setBool(String key, bool value) {
+    return _box.put(key, value);
+  }
 }

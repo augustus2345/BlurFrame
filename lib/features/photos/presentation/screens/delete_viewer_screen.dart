@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app.dart';
 import '../providers/delete_viewer_provider.dart';
 import '../providers/full_image_loader_provider.dart';
+import '../providers/multi_select_provider.dart';
 import '../providers/photos_provider.dart';
 import '../widgets/photo_viewer.dart';
 
@@ -23,6 +25,10 @@ import '../widgets/photo_viewer.dart';
 /// - ↑ 滑 → 删除当前照片 + 撤销 toast（5s）
 /// - ← 滑 → 上一张
 /// - → 滑 → 下一张
+///
+/// M5-T8 补充：
+/// - 首次进入显示操作 hint（3s 后渐隐）
+/// - 顶栏菜单「进入多选」→ 跳转相册并进入多选模式
 class DeleteViewerScreen extends ConsumerStatefulWidget {
   /// 路由 `/delete-viewer` 的目标 widget。由 `AppShell` 包裹。
   const DeleteViewerScreen({super.key});
@@ -32,6 +38,9 @@ class DeleteViewerScreen extends ConsumerStatefulWidget {
 }
 
 class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
+  /// 是否显示操作 hint overlay（首次进入后 3s 自动渐隐）。
+  bool _showHint = false;
+
   @override
   void initState() {
     super.initState();
@@ -39,7 +48,24 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(deleteViewerProvider.notifier).initialize(0);
+      _checkAndShowHint();
     });
+  }
+
+  /// 检查是否首次进入（hint 未显示过），若是则显示并在 3s 后渐隐。
+  void _checkAndShowHint() {
+    final settings = ref.read(settingsServiceProvider);
+    const hintKey = 'deleteHintShown';
+    // 注意：getBool 返回 bool，但 _box.get 泛型推断在 Box<dynamic> 下会推成 Object?，
+    // 所以用 == false 而不是 ! 来避免静态类型错误。
+    final alreadyShown = settings.getBool(hintKey, defaultValue: false);
+    if (alreadyShown == false) {
+      setState(() => _showHint = true);
+      settings.setBool(hintKey, true);
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _showHint = false);
+      });
+    }
   }
 
   @override
@@ -176,6 +202,17 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
                   ),
                 ),
               ],
+
+              // 操作 hint（M5-T8：首次显示，3s 后渐隐）
+              if (_showHint)
+                Positioned(
+                  bottom: 80,
+                  left: 0,
+                  right: 0,
+                  child: _DeleteHintOverlay(onFadeOut: () {
+                    if (mounted) setState(() => _showHint = false);
+                  }),
+                ),
             ],
           );
         },
@@ -244,19 +281,15 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.select_all, color: Colors.white),
-              title:
-                  const Text('进入多选', style: TextStyle(color: Colors.white)),
+              title: const Text('进入多选', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('多选功能即将推出')),
-                );
+                _handleEnterMultiSelect(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.filter_list, color: Colors.white),
-              title:
-                  const Text('切换过滤', style: TextStyle(color: Colors.white)),
+              title: const Text('切换过滤', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -268,6 +301,22 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
         ),
       ),
     );
+  }
+
+  /// 进入多选模式：全选当前照片 → 退出删除 tab → 跳转相册。
+  void _handleEnterMultiSelect(BuildContext context) {
+    final photos = ref.read(photosProvider).valueOrNull ?? [];
+    if (photos.isEmpty) return;
+
+    // 全选所有照片，进入多选模式
+    ref.read(multiSelectProvider.notifier).selectAll(
+          photos.map((p) => p.id).toSet(),
+        );
+    ref.read(multiSelectProvider.notifier).enterMultiSelectMode();
+
+    // 退出删除 tab，跳转到相册（多选 AppBar 会自动出现）
+    if (context.canPop()) context.pop();
+    context.go('/gallery');
   }
 }
 
@@ -519,6 +568,90 @@ class _SwipePhotoViewerState extends State<_SwipePhotoViewer> {
         photoId: widget.photoId,
         aspectRatio: widget.aspectRatio,
         fullImageLoader: widget.fullImageLoader,
+      ),
+    );
+  }
+}
+
+/// 删除 tab 操作提示 overlay（M5-T8）。
+///
+/// 首次进入时显示手势操作说明，3 秒后自动渐隐消失。
+/// 渐隐动画 500ms。
+class _DeleteHintOverlay extends StatefulWidget {
+  const _DeleteHintOverlay({required this.onFadeOut});
+
+  final VoidCallback onFadeOut;
+
+  @override
+  State<_DeleteHintOverlay> createState() => _DeleteHintOverlayState();
+}
+
+class _DeleteHintOverlayState extends State<_DeleteHintOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    // 3s 后开始淡出
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) _controller.forward().then((_) => widget.onFadeOut());
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _opacity,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacity.value,
+          child: child,
+        );
+      },
+      child: IgnorePointer(
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.swap_vert, color: Colors.white70, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  '上滑删除',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                SizedBox(width: 16),
+                Icon(Icons.swipe, color: Colors.white70, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  '左右滑动切换',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
