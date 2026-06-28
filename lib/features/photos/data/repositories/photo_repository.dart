@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:photo_manager/photo_manager.dart';
 
 import '../../../../shared/services/hive_service.dart';
 import '../datasources/photo_manager_datasource.dart';
@@ -47,8 +48,24 @@ class PhotoRepository {
     return _box.values.cast<PhotoModel>().toList();
   }
 
-  /// 删除指定 id 的条目。
-  Future<void> delete(String id) => _box.delete(id);
+  /// 删除指定 id 的照片记录。
+  ///
+  /// 实际执行两个操作：
+  /// 1. 从系统相册调用 [PhotoManager.editor.deleteWithIds] 真正删除照片（进入系统回收站）
+  /// 2. 从 Hive box 移除元数据记录
+  ///
+  /// 如果系统相册删除失败（如无权限），仍会清理 Hive 记录。
+  Future<void> delete(String id) async {
+    // 先尝试从系统相册删除
+    try {
+      await PhotoManager.editor.deleteWithIds([id]);
+    } catch (e) {
+      // 系统相册删除失败时，仍清理 Hive 记录（不阻塞删除流程）
+      debugPrint('System photo deletion failed (ignored): $e');
+    }
+    // 清理 Hive 记录
+    await _box.delete(id);
+  }
 
   /// 清空整个 box（保留 box 本身）。
   Future<void> clear() => _box.clear();
