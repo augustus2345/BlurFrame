@@ -53,6 +53,20 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
   int _currentIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // 根据路由传入的 assetId 找到正确的起始页，而不是默认第 0 张
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final photos = ref.read(photosProvider).value ?? [];
+      final index = photos.indexWhere((p) => p.id == widget.assetId);
+      if (index != -1 && index != _currentIndex) {
+        setState(() => _currentIndex = index);
+        _pageController.jumpToPage(index);
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
