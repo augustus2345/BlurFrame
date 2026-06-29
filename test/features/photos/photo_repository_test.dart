@@ -161,4 +161,53 @@ void main() {
       verifyNever(() => box.put(any<dynamic>(), any<dynamic>()));
     });
   });
+
+  group('sortPhotosByTakenAtDescending', () {
+    test('sorts photos by takenAt descending (newest first)', () {
+      final now = DateTime.now();
+      final photos = [
+        PhotoModel(id: 'old', path: '/old', takenAt: now.subtract(const Duration(days: 2))),
+        PhotoModel(id: 'new', path: '/new', takenAt: now.subtract(const Duration(days: 1))),
+        PhotoModel(id: 'newest', path: '/newest', takenAt: now),
+      ];
+
+      sortPhotosByTakenAtDescending(photos);
+
+      expect(photos[0].id, 'newest');
+      expect(photos[1].id, 'new');
+      expect(photos[2].id, 'old');
+    });
+
+    test('places null takenAt photos after photos with dates', () {
+      final now = DateTime.now();
+      final photos = [
+        PhotoModel(id: 'with-date', path: '/x', takenAt: now),
+        PhotoModel(id: 'no-date-1', path: '/y', takenAt: null),
+        PhotoModel(id: 'no-date-2', path: '/z', takenAt: null),
+      ];
+
+      sortPhotosByTakenAtDescending(photos);
+
+      // 有日期的照片必须在最前面
+      expect(photos.first.id, 'with-date');
+      // 所有 null takenAt 的照片必须在后面（索引 >= 1）
+      for (final photo in photos.skip(1)) {
+        expect(photo.takenAt, isNull);
+      }
+    });
+
+    test('sorts null takenAt photos by id for determinism', () {
+      final photos = [
+        PhotoModel(id: 'zzz', path: '/z', takenAt: null),
+        PhotoModel(id: 'aaa', path: '/a', takenAt: null),
+        PhotoModel(id: 'mmm', path: '/m', takenAt: null),
+      ];
+
+      sortPhotosByTakenAtDescending(photos);
+
+      expect(photos[0].id, 'aaa');
+      expect(photos[1].id, 'mmm');
+      expect(photos[2].id, 'zzz');
+    });
+  });
 }

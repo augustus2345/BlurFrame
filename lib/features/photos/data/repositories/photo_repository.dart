@@ -107,7 +107,7 @@ class PhotoRepository {
     ));
   }
 
-  /// 扫描系统相册，返回合并后的照片列表。
+  /// 扫描系统相册，返回合并后的照片列表（按拍摄时间倒序）。
   ///
   /// M6-T3 优化：内部使用分页流式获取（[PhotoManagerDatasource.fetchAllPaged]），
   /// 每页 60 张逐批处理后再合并，避免 1000+ 照片时内存峰值过高。
@@ -141,6 +141,28 @@ class PhotoRepository {
         result.add(merged);
       }
     }
+    // 按拍摄时间倒序排列（最新的在前）
+    sortPhotosByTakenAtDescending(result);
     return result;
   }
+}
+
+/// 按拍摄时间倒序排列照片列表（最新的在前）。
+///
+/// `takenAt` 为 `null` 的照片排在最后；两者都为 null 时按 id 排序（保持确定性）。
+void sortPhotosByTakenAtDescending(List<PhotoModel> photos) {
+  photos.sort((a, b) {
+    final aTime = a.takenAt;
+    final bTime = b.takenAt;
+    // 两者都为 null，按 id 排序（保持确定性）
+    if (aTime == null && bTime == null) {
+      return a.id.compareTo(b.id);
+    }
+    // a 为 null，b 不为 null，a 排后面
+    if (aTime == null) return 1;
+    // a 不为 null，b 为 null，a 排前面
+    if (bTime == null) return -1;
+    // 两者都不为 null，按时间倒序（b - a）
+    return bTime.compareTo(aTime);
+  });
 }
