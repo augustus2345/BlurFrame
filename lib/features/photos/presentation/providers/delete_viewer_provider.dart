@@ -106,14 +106,16 @@ class DeleteViewerNotifier extends Notifier<DeleteViewerState> {
 
   /// 移动到上一张。
   void goToPrevious(int totalCount) {
-    if (state.currentIndex <= 0) return;
-    state = state.copyWith(currentIndex: state.currentIndex - 1);
+    if (totalCount <= 0) return;
+    final newIndex = state.currentIndex <= 0 ? totalCount - 1 : state.currentIndex - 1;
+    state = state.copyWith(currentIndex: newIndex);
   }
 
-  /// 移动到下一张。
+  /// 移动到下一张（循环：从最后一张滑到最前一张）。
   void goToNext(int totalCount) {
-    if (state.currentIndex >= totalCount - 1) return;
-    state = state.copyWith(currentIndex: state.currentIndex + 1);
+    if (totalCount <= 0) return;
+    final newIndex = state.currentIndex >= totalCount - 1 ? 0 : state.currentIndex + 1;
+    state = state.copyWith(currentIndex: newIndex);
   }
 
   /// 删除当前照片后，切换到上一张（如果还有）。

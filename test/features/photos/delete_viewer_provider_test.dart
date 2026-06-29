@@ -48,10 +48,10 @@ void main() {
       expect(container.read(deleteViewerProvider).currentIndex, 2);
     });
 
-    test('does nothing when currentIndex is 0', () {
+    test('wraps to last when currentIndex is 0', () {
       notifier.initialize(0);
       notifier.goToPrevious(5);
-      expect(container.read(deleteViewerProvider).currentIndex, 0);
+      expect(container.read(deleteViewerProvider).currentIndex, 4);
     });
   });
 
@@ -62,10 +62,10 @@ void main() {
       expect(container.read(deleteViewerProvider).currentIndex, 1);
     });
 
-    test('does nothing when currentIndex is at last position', () {
+    test('wraps to first when currentIndex is at last position', () {
       notifier.initialize(4);
       notifier.goToNext(5);
-      expect(container.read(deleteViewerProvider).currentIndex, 4);
+      expect(container.read(deleteViewerProvider).currentIndex, 0);
     });
   });
 

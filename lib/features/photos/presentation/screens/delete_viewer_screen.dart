@@ -145,13 +145,12 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
                   fullImageLoader: fullImageLoader,
                   isMarkedDelete: viewerState.pendingDeleteIds.contains(currentPhoto.id),
                   onSwipeUp: () => _handleSwipeUpMark(currentPhoto.id),
-                  onSwipeLeft: viewerState.currentIndex > 0
+                  onSwipeLeft: photos.length > 1
                       ? () => ref
                           .read(deleteViewerProvider.notifier)
                           .goToPrevious(photos.length)
                       : null,
-                  onSwipeRight: photos.length > 1 &&
-                          viewerState.currentIndex < photos.length - 1
+                  onSwipeRight: photos.length > 1
                       ? () => ref
                           .read(deleteViewerProvider.notifier)
                           .goToNext(photos.length)
@@ -185,7 +184,7 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
                   bottom: 0,
                   child: _NavigationArrow(
                     icon: Icons.chevron_left,
-                    onTap: viewerState.currentIndex > 0
+                    onTap: photos.length > 1
                         ? () => ref
                             .read(deleteViewerProvider.notifier)
                             .goToPrevious(photos.length)
@@ -199,7 +198,7 @@ class _DeleteViewerScreenState extends ConsumerState<DeleteViewerScreen> {
                   bottom: 0,
                   child: _NavigationArrow(
                     icon: Icons.chevron_right,
-                    onTap: viewerState.currentIndex < photos.length - 1
+                    onTap: photos.length > 1
                         ? () => ref
                             .read(deleteViewerProvider.notifier)
                             .goToNext(photos.length)
