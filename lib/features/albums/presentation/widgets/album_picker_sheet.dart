@@ -196,12 +196,10 @@ class _AlbumPickerSheetState extends ConsumerState<AlbumPickerSheet> {
       ),
     );
     if (name != null && name.isNotEmpty && mounted) {
-      // 创建新影集并添加照片，onConfirm 会关闭 bottom sheet
+      // 只创建空影集，照片由 onConfirm 回调统一添加
+      // 避免重复添加：_handleBatchAlbum 里会调用 addPhotos
       final albumRepo = ref.read(albumRepositoryProvider);
-      final newAlbum = await albumRepo.create(
-        name: name,
-        photoIds: widget.selectedPhotoIds.toList(),
-      );
+      final newAlbum = await albumRepo.create(name: name);
       widget.onConfirm(newAlbum.id);
     }
   }

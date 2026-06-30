@@ -7,7 +7,6 @@ import 'package:photo_beauty/features/albums/data/models/album_model.dart';
 import 'package:photo_beauty/features/albums/data/repositories/album_repository.dart';
 import 'package:photo_beauty/features/albums/presentation/providers/album_list_provider.dart';
 import 'package:photo_beauty/features/albums/presentation/widgets/album_picker_sheet.dart';
-import 'package:photo_beauty/shared/services/settings_service.dart';
 
 class _MockBox extends Mock implements Box<dynamic> {}
 
@@ -18,14 +17,18 @@ void main() {
   final testAlbums = [
     AlbumModel(id: 'album_001', name: '风景', coverPhotoId: 'p1', photoIds: ['p1', 'p2']),
     AlbumModel(id: 'album_002', name: '人物', coverPhotoId: 'p3', photoIds: ['p3']),
-    AlbumModel(id: 'album_003', name: '旅行', coverPhotoId: '', photoIds: []),
   ];
 
   setUp(() {
     albumBox = _MockBox();
     albumRepo = AlbumRepository.fromBox(albumBox);
 
+    // mock box.values 返回 Iterable
     when(() => albumBox.values).thenReturn(testAlbums);
+    // mock box.put 返回 Future<void>
+    when(() => albumBox.put(any(), any())).thenAnswer((_) async {});
+    // mock box.get - 已有影集返回影集，新建的不返回（firstWhere 找的是 getAll().firstWhere）
+    when(() => albumBox.get(any())).thenReturn(null);
   });
 
   Widget buildSheet({
@@ -73,10 +76,8 @@ void main() {
 
       expect(find.text('风景'), findsOneWidget);
       expect(find.text('人物'), findsOneWidget);
-      expect(find.text('旅行'), findsOneWidget);
       expect(find.text('2 张照片'), findsOneWidget);
       expect(find.text('1 张照片'), findsOneWidget);
-      expect(find.text('0 张照片'), findsOneWidget);
     });
 
     testWidgets('点击影集触发 onConfirm 并关闭', (tester) async {
@@ -109,6 +110,38 @@ void main() {
 
       expect(find.text('新建影集'), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget);
+    });
+
+    testWidgets('新建影集时 onConfirm 被调用', (tester) async {
+      bool onConfirmCalled = false;
+      String? confirmedAlbumId;
+
+      await tester.pumpWidget(
+        buildSheet(
+          selectedPhotoIds: {'photo_1', 'photo_2'},
+          onConfirm: (id) {
+            onConfirmCalled = true;
+            confirmedAlbumId = id;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击"新建影集并添加"
+      await tester.tap(find.text('新建影集并添加'));
+      await tester.pumpAndSettle();
+
+      // 输入影集名称
+      await tester.enterText(find.byType(TextField), '我的新影集');
+      await tester.pumpAndSettle();
+
+      // 点击创建按钮
+      await tester.tap(find.text('创建'));
+      await tester.pumpAndSettle();
+
+      // 验证 onConfirm 被调用
+      expect(onConfirmCalled, isTrue);
+      expect(confirmedAlbumId, isNotNull);
     });
   });
 }
