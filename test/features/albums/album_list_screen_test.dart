@@ -54,7 +54,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('还没有影集'), findsOneWidget);
-      expect(find.text('从相册里多选几张照片，组成一个好看的影集'), findsOneWidget);
+      expect(
+        find.text('从相册里多选几张照片，组成一个好看的影集'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('success 态显示 2 列网格', (tester) async {
@@ -108,6 +111,132 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byIcon(Icons.add), findsOneWidget);
+    });
+
+    // ========== 删除影集测试 ==========
+
+    testWidgets('长按影集卡片显示删除选项', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: const MaterialApp(home: AlbumListScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按第一个影集卡片
+      await tester.longPress(
+        find.byKey(const Key('album_grid_item_album_001')),
+      );
+      await tester.pumpAndSettle();
+
+      // 应该看到删除选项
+      expect(find.text('删除'), findsOneWidget);
+    });
+
+    testWidgets('点击长按菜单的删除显示确认对话框', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: const MaterialApp(home: AlbumListScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按第一个影集卡片
+      await tester.longPress(
+        find.byKey(const Key('album_grid_item_album_001')),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击删除选项
+      await tester.tap(find.text('删除'));
+      await tester.pumpAndSettle();
+
+      // 确认对话框应该显示
+      expect(find.text('确认删除'), findsOneWidget);
+    });
+
+    testWidgets('点击取消关闭对话框不删除', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: const MaterialApp(home: AlbumListScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按第一个影集卡片
+      await tester.longPress(
+        find.byKey(const Key('album_grid_item_album_001')),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击删除选项
+      await tester.tap(find.text('删除'));
+      await tester.pumpAndSettle();
+
+      // 点击取消
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+
+      // 对话框应该关闭
+      expect(find.text('确认删除'), findsNothing);
+    });
+
+    testWidgets('确认删除后显示成功 snackbar', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: const MaterialApp(home: AlbumListScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 长按第一个影集卡片
+      await tester.longPress(
+        find.byKey(const Key('album_grid_item_album_001')),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击删除选项
+      await tester.tap(find.text('删除'));
+      await tester.pumpAndSettle();
+
+      // 点击确认删除
+      await tester.tap(find.widgetWithText(TextButton, '删除'));
+      await tester.pumpAndSettle();
+
+      // 应该显示成功 snackbar
+      expect(find.textContaining('已删除'), findsOneWidget);
     });
   });
 }

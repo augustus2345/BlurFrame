@@ -777,3 +777,17 @@
 （满足归档条件时使用，详见 CLAUDE.md §5）
 
 _尚无归档记录_
+
+---
+
+## 删除影集功能（新增）
+
+- [x] **删除影集** 在 `AlbumListNotifier` 添加 `delete` 方法 + 在详情页 AppBar 更多菜单添加删除选项 + 在列表页长按菜单添加删除选项 + 二次确认对话框 + 成功 snackbar + 删除后返回上一页
+  - 新增 `AlbumListNotifier.delete(id)` 方法（调用 `AlbumRepository.delete` 并自动刷新列表）
+  - 修改 `album_detail_screen.dart`：在 AppBar 更多菜单 (`PopupMenuButton`) 添加"删除影集"选项 → `_showDeleteConfirmation` → 二次确认 AlertDialog → 调用 `albumListProvider.delete` → SnackBar 提示 → `context.pop` 返回列表
+  - 修改 `album_list_screen.dart`：`AlbumGridItem.onLongPress` → `_showAlbumOptionsMenu` → 底部 sheet 含"删除"选项 → `_showDeleteConfirmation` → 二次确认 → 调用删除 → SnackBar 提示
+  - 新增测试 `album_detail_screen_test.dart`：4 个用例（更多菜单显示删除/点击显示确认对话框/取消不删除/确认删除显示 snackbar）
+  - 新增测试 `album_list_screen_test.dart`：4 个用例（长按显示删除/点击显示确认对话框/取消不删除/确认删除显示 snackbar）
+  - **验证**: 代码语法正确，结构完整
+  - **预估**: 20 min
+  - **完成时间**: 2026-07-01

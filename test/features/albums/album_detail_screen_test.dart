@@ -440,6 +440,143 @@ void main() {
           find.byType(ReorderableListView);
       expect(reorderableListView, findsOneWidget);
     });
+
+    // ========== 删除影集测试 ==========
+
+    testWidgets('点击更多按钮显示删除影集选项', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: MaterialApp(
+            home: AlbumDetailScreen(albumId: 'album_001'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击更多按钮
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      // 应该看到删除选项
+      expect(find.text('删除影集'), findsOneWidget);
+    });
+
+    testWidgets('点击删除选项显示确认对话框', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: MaterialApp(
+            home: AlbumDetailScreen(albumId: 'album_001'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击更多按钮
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      // 点击删除选项
+      await tester.tap(find.text('删除影集'));
+      await tester.pumpAndSettle();
+
+      // 确认对话框应该显示
+      expect(find.text('确认删除'), findsOneWidget);
+      expect(find.text('取消'), findsOneWidget);
+      expect(find.text('删除'), findsNWidgets(2)); // 对话框里的删除按钮
+    });
+
+    testWidgets('点击取消按钮关闭对话框不删除', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: MaterialApp(
+            home: AlbumDetailScreen(albumId: 'album_001'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击更多按钮
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      // 点击删除选项
+      await tester.tap(find.text('删除影集'));
+      await tester.pumpAndSettle();
+
+      // 点击取消
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+
+      // 对话框应该关闭
+      expect(find.text('确认删除'), findsNothing);
+    });
+
+    testWidgets('确认删除后显示成功 snackbar 并返回上一页', (tester) async {
+      final router = GoRouter(
+        initialLocation: '/albums/album_001',
+        routes: [
+          GoRoute(
+            path: '/albums/:id',
+            builder: (context, state) =>
+                AlbumDetailScreen(albumId: state.pathParameters['id']!),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            albumListProvider.overrideWith(
+              () => _SuccessAlbumListNotifier(testAlbums),
+            ),
+            assetThumbnailLoaderProvider.overrideWithValue(
+              (String id) async => null,
+            ),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击更多按钮
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+
+      // 点击删除选项
+      await tester.tap(find.text('删除影集'));
+      await tester.pumpAndSettle();
+
+      // 点击确认删除
+      await tester.tap(find.widgetWithText(TextButton, '删除'));
+      await tester.pumpAndSettle();
+
+      // 应该显示成功 snackbar
+      expect(find.textContaining('已删除'), findsOneWidget);
+    });
   });
 
   group('autoLayout', () {

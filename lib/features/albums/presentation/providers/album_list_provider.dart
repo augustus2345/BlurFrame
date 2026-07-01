@@ -24,6 +24,15 @@ class AlbumListNotifier extends AsyncNotifier<List<AlbumModel>> {
       () => Future.value(ref.read(albumRepositoryProvider).getAll()),
     );
   }
+
+  /// 删除指定影集。
+  ///
+  /// [id] 不存在时 no-op。
+  /// 删除后自动刷新列表。
+  Future<void> delete(String id) async {
+    await ref.read(albumRepositoryProvider).delete(id);
+    await refresh();
+  }
 }
 
 /// 全局影集列表入口。

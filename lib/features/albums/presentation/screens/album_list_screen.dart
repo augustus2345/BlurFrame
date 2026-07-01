@@ -15,6 +15,7 @@ import '../widgets/album_grid_item.dart';
 /// - 4 态显式：loading / error+retry / empty / success
 /// - 右上角 "+" → 打开新建影集流程（M3-T4）
 /// - 点击进详情页 `/albums/:id`（M3-T5）
+/// - 长按影集卡片 → 弹出操作菜单（含删除）
 class AlbumListScreen extends ConsumerStatefulWidget {
   const AlbumListScreen({super.key});
 
@@ -129,8 +130,76 @@ class _AlbumGrid extends ConsumerWidget {
           onTap: () {
             context.push('/albums/${album.id}');
           },
+          onLongPress: () {
+            _showAlbumOptionsMenu(context, ref, album);
+          },
         );
       },
     );
+  }
+
+  /// 显示影集操作菜单。
+  Future<void> _showAlbumOptionsMenu(
+    BuildContext context,
+    WidgetRef ref,
+    AlbumModel album,
+  ) async {
+    // 显示底部菜单
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('删除'),
+              onTap: () => Navigator.of(context).pop('delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == 'delete' && context.mounted) {
+      _showDeleteConfirmation(context, ref, album);
+    }
+  }
+
+  /// 显示删除确认对话框。
+  Future<void> _showDeleteConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    AlbumModel album,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除影集「${album.name}」吗？此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              '删除',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(albumListProvider.notifier).delete(album.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('「${album.name}」已删除')),
+        );
+      }
+    }
   }
 }
